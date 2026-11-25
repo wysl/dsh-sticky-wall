@@ -420,6 +420,7 @@ window.__ModuleLoader__.load({
       /* 右上 / 左下两个入口按钮：贴合宿主图标排的尺寸与配色 */
       .todo-headbtn,.todo-footerbtn{position:relative;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:none;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;flex:none}
       .todo-headbtn:hover,.todo-footerbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+      .todo-headbtn:focus-visible,.todo-footerbtn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}
       .todo-headbtn .todo-pending-dot,.todo-footerbtn .todo-pending-dot{position:absolute;top:3px;right:3px}
       /* 右栏标签体：撑满右栏面板高度 */
       .todo-pane{height:100%;min-height:0;display:flex;flex-direction:column}
@@ -434,6 +435,24 @@ window.__ModuleLoader__.load({
       @media (max-width:720px){.todo-topbar{padding:10px 14px}.todo-statusbar{padding:8px 14px}}
       @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-switch,.todo-switch .knob,.todo-search{transition:none}}
     `
+
+    /** 入口按钮先于墙面板挂载，CSS 必须全局注入一次，不能只靠面板组件内的 <style>。 */
+    function ensureStyle() {
+      if (typeof document === 'undefined') return () => {}
+      const id = 'xia-sc-dsh-todo-style'
+      let node = document.getElementById(id)
+      let created = false
+      if (!node) {
+        node = document.createElement('style')
+        node.id = id
+        node.textContent = CSS
+        document.head.appendChild(node)
+        created = true
+      }
+      return () => {
+        if (created && node && node.parentNode) node.parentNode.removeChild(node)
+      }
+    }
 
     function formatEntry(entry, params) {
       if (typeof entry !== 'string') return ''
@@ -1721,6 +1740,9 @@ window.__ModuleLoader__.load({
         }
       }
       translator = t
+
+      // 全局样式：入口按钮不依赖墙面板是否挂载。
+      try { ctx.effect(() => ensureStyle(), 'todo-wall: global styles') } catch (error) { console.warn('[todo-wall] styles', error) }
 
       const slots = ctx.slots
       if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return
