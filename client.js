@@ -87,6 +87,9 @@ window.__ModuleLoader__.load({
         deleting: '删除中…',
         titleRequired: '标题或正文不能都为空',
         timeWarning: '预计结束早于计划开始',
+        timeOptionalHint: '只填开始也可以，结束留空表示还没定',
+        addEnd: '+ 添加结束时间',
+        clearTime: '清除',
         colorCream: '米黄',
         colorLemon: '柠檬',
         colorMint: '薄荷',
@@ -180,6 +183,9 @@ window.__ModuleLoader__.load({
         deleting: 'Deleting…',
         titleRequired: 'A note needs a title or body',
         timeWarning: 'End is earlier than start',
+        timeOptionalHint: 'A start time alone is fine; leave the end empty when it is not decided',
+        addEnd: '+ Add end time',
+        clearTime: 'Clear',
         colorCream: 'Cream',
         colorLemon: 'Lemon',
         colorMint: 'Mint',
@@ -335,6 +341,13 @@ window.__ModuleLoader__.load({
       .todo-field input,.todo-field select{box-sizing:border-box;width:100%;height:30px;padding:0 7px;border:1px solid rgba(120,100,60,.24);border-radius:7px;background:rgba(255,255,255,.55);color:var(--todo-ink);font:inherit;font-size:12px;outline:none;min-width:0}
       .todo-field input:focus,.todo-field select:focus{border-color:#2f5d4a;box-shadow:0 0 0 2px rgba(47,93,74,.14)}
       .todo-field input::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer}
+      .todo-field-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+      .todo-field-head > span{font-size:11px;color:var(--todo-ink-faint)}
+      .todo-time-clear{padding:0;border:0;background:none;font-size:10px;line-height:14px;color:var(--todo-ink-faint);cursor:pointer}
+      .todo-time-clear:hover{color:var(--todo-danger)}
+      .todo-add-end{align-self:flex-start;height:26px;padding:0 9px;border:1px dashed rgba(120,100,60,.35);border-radius:7px;background:rgba(255,255,255,.35);color:var(--todo-ink-soft);font:inherit;font-size:11px;cursor:pointer}
+      .todo-add-end:hover{background:rgba(255,255,255,.6);color:var(--todo-ink)}
+      .todo-time-hint{margin:0;font-size:10px;line-height:14px;color:var(--todo-ink-faint)}
       .todo-invalid{margin:0;font-size:11px;line-height:16px;color:var(--todo-danger)}
       .todo-status-row{display:flex;flex-wrap:wrap;gap:4px;padding-top:7px;border-top:1px solid rgba(120,100,60,.16)}
       .todo-status-btn{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 8px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--todo-ink-soft);font:inherit;font-size:12px;cursor:pointer}
@@ -959,6 +972,7 @@ window.__ModuleLoader__.load({
       const [color, setColor] = React.useState(task.color || 'cream')
       const [start, setStart] = React.useState(toLocalInput(task.planStartAt))
       const [end, setEnd] = React.useState(toLocalInput(task.planEndAt))
+      const [showEnd, setShowEnd] = React.useState(Boolean(task.planEndAt))
       const [workspaceId, setWorkspaceId] = React.useState(task.workspaceId || '')
       const [added, setAdded] = React.useState([])
       const [removed, setRemoved] = React.useState([])
@@ -970,6 +984,7 @@ window.__ModuleLoader__.load({
       const cardRef = React.useRef(null)
       const bodyRef = React.useRef(null)
       const titleRef = React.useRef(null)
+      const endRef = React.useRef(null)
       useFocusTrap(cardRef)
 
       React.useEffect(() => {
@@ -1155,14 +1170,38 @@ window.__ModuleLoader__.load({
               'aria-label': t('planStartField'),
               onChange: (event) => setStart(event.target.value),
             })),
-          h('label', { className: 'todo-field' },
-            h('span', null, t('planEndField')),
-            h('input', {
-              type: 'datetime-local',
-              value: end,
-              'aria-label': t('planEndField'),
-              onChange: (event) => setEnd(event.target.value),
-            }))),
+          h('div', { className: 'todo-field todo-end-field' },
+            h('div', { className: 'todo-field-head' },
+              h('span', null, t('planEndField')),
+              showEnd
+                ? h('button', {
+                    type: 'button',
+                    className: 'todo-time-clear',
+                    onClick: () => {
+                      setEnd('')
+                      setShowEnd(false)
+                    },
+                  }, t('clearTime'))
+                : null),
+            showEnd
+              ? h('input', {
+                  ref: endRef,
+                  type: 'datetime-local',
+                  value: end,
+                  'aria-label': t('planEndField'),
+                  onChange: (event) => setEnd(event.target.value),
+                })
+              : h('button', {
+                  type: 'button',
+                  className: 'todo-add-end',
+                  onClick: () => {
+                    setShowEnd(true)
+                    requestAnimationFrame(() => {
+                      if (endRef.current) endRef.current.focus()
+                    })
+                  },
+                }, t('addEnd')))),
+        h('p', { className: 'todo-time-hint' }, t('timeOptionalHint')),
         (start && end && new Date(end) < new Date(start))
           ? h('p', { className: 'todo-invalid' }, t('timeWarning'))
           : null,

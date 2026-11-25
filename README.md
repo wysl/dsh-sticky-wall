@@ -62,7 +62,7 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 | 位置 `x` / `y` | 否 | 便签在墙上的像素坐标；旧数据没有时按网格自动补齐 |
 | 关联工作区 `workspaceId` | 否 | 取自 DSH 的工作区清单；不选即不关联（在编辑态「更多字段」里） |
 | 计划开始 `planStartAt` | 否 | ISO 时间；编辑态用日期时间选择器 |
-| 预计结束 `planEndAt` | 否 | 同上；结束早于开始时只提示不拦截保存 |
+| 预计结束 `planEndAt` | 否 | 可只填开始；编辑态默认不显示结束，点「+ 添加结束时间」才出现，可随时「清除」；结束早于开始时只提示不拦截保存 |
 | 文档附件 `attachments` | 否 | 文档路径或链接的引用列表，最多 20 个；路径暂时不存在也能先记下，标为「文件不存在」（在「更多字段」里） |
 | 子便签 `parentId` | 否 | 由 LLM 的 `todo_split` 产生；删除父便签只解除父子关系，不连带删除子便签 |
 
@@ -74,7 +74,7 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 
 - **贴一张**：点右上「新便签」，便签落在墙上的空位并原地展开编辑；保存后留在墙上。
 - **摆放**：按住便签拖到任意位置，松手就停在那里并立即保存；靠近窗口上下边缘时会自动滚动。重叠也没关系，最近动过的便签在上层。
-- **编辑**：点便签原地展开——标题、正文、纸色、起止时间、状态都在便签上改；点「更多字段」可以选工作区、加/删文档附件。Esc 取消（有改动会二次确认），Ctrl/⌘+Enter 保存，删除需要点两次确认。
+- **编辑**：点便签原地展开——标题、正文、纸色、状态、开始时间都在便签上改；结束时间默认收起，点「+ 添加结束时间」展开、点「清除」收起，只填开始也可以。点「更多字段」可以选工作区、加/删文档附件。Esc 取消（有改动会二次确认），Ctrl/⌘+Enter 保存，删除需要点两次确认。
 - **纸色与状态**：编辑态里选六种暖色纸；状态用右上角小圆点 + 文案表示。已完成 / 已撤销的便签整张淡化，鼠标悬停或键盘聚焦时恢复清晰。
 - **浏览**：顶部搜索标题、正文和时间；状态筛选 chips 带数量；底部状态条显示各状态张数与待完成数。
 - **整理**：点「整理」按「状态（规划中 → 进行中 → 已完成 → 已撤销）→ 最近修改」把便签码成整齐的几列。
@@ -124,7 +124,7 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 | --- | --- |
 | 1 任务可关联工作区 | `workspaceId`（可选）+ 编辑态「更多字段」里的工作区下拉 |
 | 2 四种状态 | `planned`/`active`/`done`/`cancelled`，便签上的状态小标签 + 编辑态状态分段按钮，校验拒绝其他值 |
-| 3 计划开始与预计结束时间 | `planStartAt`/`planEndAt`（可选），便签底部一行时间与编辑态两个日期时间输入 |
+| 3 计划开始与预计结束时间 | `planStartAt`/`planEndAt`（可选），便签底部一行时间；编辑态填开始，结束按需添加/清除 |
 | 4 文档附件 | `attachments`（可选），编辑态「更多字段」里增删、缺失标记 |
 | 7 LLM 工具 + 开关 | `todo_load_tools` 按需加载入口 + `todo_list`/`todo_update`/`todo_split`；`llmTools` 默认 `false`，设置 → 通用里开启，关闭时连入口一起撤销 |
 | 便签墙形态 | 自由摆放的暖色便签、纸色预选、原地展开编辑、整理、搜索与状态筛选 |
@@ -136,4 +136,5 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 MIT，见 [LICENSE](LICENSE)。
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+
 

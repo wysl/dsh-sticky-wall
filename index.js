@@ -18,7 +18,7 @@ import { registerRoutes } from './routes.js'
 export const name = '@xia-sc/dsh-todo'
 export const inject = ['tools']
 
-const PLUGIN_VERSION = '0.1.2'
+const PLUGIN_VERSION = '0.1.3'
 const HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
 const DATA_DIR = join(HOME, 'dsh-todo')
 const TASKS_FILE = join(DATA_DIR, 'tasks.json')
@@ -935,5 +935,6 @@ export function apply(ctx, rawConfig = {}) {
 
   log(ctx, `mounted; llmTools=${configRef.current.llmTools} dataDir=${DATA_DIR}`)
 }
+
 
 
