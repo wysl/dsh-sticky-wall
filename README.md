@@ -1,6 +1,6 @@
 # 便签墙 TODO（`@xia-sc/dsh-todo`）
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![npm](https://img.shields.io/npm/v/@xia-sc/dsh-todo.svg)](https://www.npmjs.com/package/@xia-sc/dsh-todo)
 
 把 TODO 当成便签贴在墙上：左侧边栏「便签墙」进入主面板，便签可以拖到墙上任意位置，点一下原地展开编辑。状态只是便签里的一个字段，不是分区。工作区、起止时间、文档附件都是可选字段，留空就是一张普通便签。开启设置后，LLM 可以按需加载工具，读取和改写同一堵墙。
 
@@ -12,7 +12,7 @@
 
 ## 安装
 
-### 从 npm 安装（发布后推荐）
+### 从 npm 安装（推荐）
 
 DSH 已连接 npm 时，直接以包名安装：
 
@@ -126,3 +126,4 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 MIT，见 [LICENSE](LICENSE)。
 
 [![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
+

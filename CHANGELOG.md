@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- 首个通过 GitHub Actions **OIDC（Trusted Publishing）** 发布、带 npm provenance 的版本。
+- README 增加 npm 版本徽章，安装说明改为「从 npm 安装」。
+- 无功能变更。
+
 ## 0.1.0
 
 首个版本。
