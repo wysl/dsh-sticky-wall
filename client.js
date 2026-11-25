@@ -311,22 +311,21 @@ window.__ModuleLoader__.load({
 
       /* ---------------- 便签 ---------------- */
       .todo-note{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;width:${NOTE_W}px;height:${NOTE_H}px;padding:14px 15px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 72%, #7a621f);box-shadow:var(--dsw-elevation-panel);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none;transition:box-shadow .16s,opacity .2s,filter .2s,background-color .25s,translate .16s,scale .16s;animation:todo-note-in .18s cubic-bezier(.2,.8,.2,1)}
-      .todo-note:hover{box-shadow:var(--dsw-elevation-prominent)}
       .todo-note.dragging{cursor:grabbing;z-index:9998;box-shadow:var(--dsw-elevation-prominent)}
       .todo-note:hover{translate:0 -2px;box-shadow:var(--dsw-elevation-prominent)}
       .todo-note.removing{animation:todo-note-out .16s ease forwards;pointer-events:none}
       .todo-note.pulse .todo-tag .dot{animation:todo-dot-pulse .35s ease}
-      .todo-note.quiet{opacity:.7;filter:saturate(.75)}
-      .todo-note.quiet:hover,.todo-note.quiet:focus-visible{opacity:1;filter:none}
-      .todo-note.hidden{display:none}
+      .todo-note.quiet{filter:saturate(.55);border-color:color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 45%, #7a621f);box-shadow:none}
+      .todo-note.quiet:hover,.todo-note.quiet:focus-visible{filter:saturate(.85);box-shadow:var(--dsw-elevation-panel)}
       .todo-note.arranging{transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),box-shadow .16s,opacity .2s}
-      .todo-tape{position:absolute;top:-9px;left:50%;width:62px;height:18px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg, rgba(255,255,255,.34), rgba(255,255,255,.74) 40%, rgba(255,255,255,.46));border:1px solid rgba(120,100,60,.14);border-radius:2px;pointer-events:none}
+      .todo-tape{position:absolute;top:-6px;left:50%;width:62px;height:16px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg, rgba(255,255,255,.28), rgba(255,255,255,.6) 40%, rgba(255,255,255,.38));border:1px solid rgba(120,100,60,.2);border-radius:2px;pointer-events:none}
       .todo-note-top{display:flex;align-items:center;gap:6px;flex:none;margin-bottom:7px;min-height:20px}
       .todo-tag{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.7);border:1px solid rgba(120,100,60,.16);color:var(--todo-ink-soft);font-size:11.5px;line-height:1;white-space:nowrap}
       .todo-tag .dot{width:6px;height:6px;border-radius:50%;background:#8b8476}
       .todo-tag[data-status="active"] .dot{background:#3d7e9c}
       .todo-tag[data-status="done"] .dot{background:#578a5d}
       .todo-tag[data-status="cancelled"] .dot{background:#a7a196}
+      .todo-tag[data-status="cancelled"]{text-decoration:line-through}
       .todo-note-title{flex:none;margin:0 0 5px;font-size:15px;line-height:1.35;font-weight:650;letter-spacing:.1px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--todo-ink)}
       .todo-note-body{flex:1;min-height:0;margin:0;padding-right:2px;font-size:12.5px;line-height:1.6;color:var(--todo-ink-soft);overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;white-space:pre-wrap;scrollbar-width:thin;scrollbar-color:rgba(120,100,60,.28) transparent}
       .todo-note-body::-webkit-scrollbar{width:5px}
@@ -338,36 +337,38 @@ window.__ModuleLoader__.load({
       .todo-note-when.warn{color:var(--todo-danger)}
 
       /* ---------------- 原地编辑 ---------------- */
-      .todo-editor{position:absolute;z-index:9997;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;width:340px;padding:13px 14px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 62%, #7a621f);box-shadow:var(--dsw-elevation-prominent);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none}
+      .todo-editor{position:absolute;z-index:9997;box-sizing:border-box;display:flex;flex-direction:column;gap:0;width:min(340px, calc(100% - 16px));padding:13px 14px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 62%, #7a621f);box-shadow:var(--dsw-elevation-prominent);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none}
+      .todo-editor-body{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;overflow:auto;scrollbar-width:thin}
       .todo-editor.dragging{cursor:grabbing;z-index:9998}
       .todo-editor.closing{pointer-events:none}
       .todo-collapse{position:absolute;top:8px;right:8px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:none;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--todo-ink-faint);cursor:pointer}
       .todo-collapse:hover{background:rgba(120,100,60,.12);color:var(--todo-ink)}
       .todo-editor input,.todo-editor textarea,.todo-editor select{user-select:text}
       .todo-editor .title,.todo-editor textarea,.todo-textview{animation:todo-fade .15s ease}
-      .todo-editor .tape{position:absolute;top:-9px;left:50%;width:62px;height:18px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg,rgba(255,255,255,.34),rgba(255,255,255,.74) 40%,rgba(255,255,255,.46));border:1px solid rgba(120,100,60,.14);border-radius:2px;pointer-events:none}
-      .todo-editor input.title{width:100%;border:0;border-bottom:1px dashed rgba(120,100,60,.3);background:transparent;padding:2px 0 5px;font:inherit;font-size:17px;font-weight:650;color:var(--todo-ink);outline:none}
+      .todo-editor input.title{width:100%;border:0;border-bottom:1px dashed rgba(120,100,60,.3);background:transparent;padding:2px 30px 5px 0;font:inherit;font-size:17px;font-weight:650;color:var(--todo-ink);outline:none}
+      .todo-editor input.title:focus{border-bottom-color:var(--todo-ink-soft);box-shadow:0 1px 0 0 var(--todo-ink-soft)}
       .todo-editor input.title::placeholder,.todo-editor textarea::placeholder{color:var(--todo-ink-faint);font-weight:400}
       .todo-editor textarea{width:100%;min-height:64px;max-height:240px;resize:none;border:0;background:transparent;padding:2px 0;font:inherit;font-size:13px;line-height:1.6;color:var(--todo-ink-soft);outline:none;overflow-y:auto}
+      .todo-editor textarea:focus{box-shadow:0 0 0 2px rgba(93,86,72,.16);border-radius:6px}
       .todo-editor-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
       .todo-editor-row .label{font-size:11px;color:var(--todo-ink-faint);white-space:nowrap}
       .todo-palette{display:flex;align-items:center;gap:6px}
-      .todo-swatch{width:22px;height:22px;padding:0;border-radius:50%;border:1px solid rgba(90,75,40,.26);cursor:pointer;background:var(--swatch)}
+      .todo-swatch{width:22px;height:22px;padding:0;border-radius:50%;border:1px solid rgba(90,75,40,.4);cursor:pointer;background:var(--swatch)}
       .todo-swatch:focus-visible{outline:2px solid var(--todo-ink-soft);outline-offset:2px}
-      .todo-swatch[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 0 3px #2f5d4a}
+      .todo-swatch[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 0 3px var(--todo-ink-soft)}
       .todo-time-row{display:flex;flex-direction:column;gap:8px}
       .todo-field{display:flex;flex-direction:column;gap:3px;min-width:0}
       .todo-field > span{font-size:11px;color:var(--todo-ink-faint)}
       .todo-field input,.todo-field select{box-sizing:border-box;width:100%;height:30px;padding:0 7px;border:1px solid rgba(120,100,60,.3);border-radius:7px;background:rgba(120,100,60,.07);color:var(--todo-ink);font:inherit;font-size:12px;outline:none;min-width:0;color-scheme:light}
       .todo-field input:focus,.todo-field select:focus{border-color:var(--todo-ink-soft);box-shadow:0 0 0 2px rgba(93,86,72,.16)}
-      .todo-field input::-webkit-calendar-picker-indicator{opacity:.55;cursor:pointer}
+      .todo-field input::-webkit-calendar-picker-indicator{opacity:.8;cursor:pointer}
       .todo-field-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
       .todo-field-head > span{font-size:11px;color:var(--todo-ink-faint)}
-      .todo-time-clear{padding:0;border:0;background:none;font-size:10px;line-height:14px;color:var(--todo-ink-faint);cursor:pointer}
+      .todo-time-clear{padding:4px 6px;min-height:24px;border:0;background:none;font-size:11px;line-height:16px;color:var(--todo-ink-faint);cursor:pointer}
       .todo-time-clear:hover{color:var(--todo-danger)}
       .todo-add-end{align-self:flex-start;height:26px;padding:0 9px;border:1px dashed rgba(120,100,60,.35);border-radius:7px;background:rgba(255,255,255,.35);color:var(--todo-ink-soft);font:inherit;font-size:11px;cursor:pointer}
       .todo-add-end:hover{background:rgba(255,255,255,.6);color:var(--todo-ink)}
-      .todo-time-hint{margin:0;font-size:10px;line-height:14px;color:var(--todo-ink-faint)}
+      .todo-time-hint{margin:0;font-size:11px;line-height:16px;color:var(--todo-ink-faint)}
       .todo-invalid{margin:0;font-size:11px;line-height:16px;color:var(--todo-danger)}
       .todo-status-row{display:flex;flex-wrap:wrap;gap:4px;padding-top:7px;border-top:1px solid rgba(120,100,60,.16)}
       .todo-status-btn{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 8px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--todo-ink-soft);font:inherit;font-size:12px;cursor:pointer}
@@ -377,6 +378,7 @@ window.__ModuleLoader__.load({
       .todo-status-btn[data-status="active"] .dot{background:#3d7e9c}
       .todo-status-btn[data-status="done"] .dot{background:#578a5d}
       .todo-status-btn[data-status="cancelled"] .dot{background:#a7a196}
+      .todo-status-btn[data-status="cancelled"]{text-decoration:line-through}
       .todo-details{border-top:1px solid rgba(120,100,60,.16);padding-top:7px}
       .todo-details summary{cursor:pointer;font-size:11px;color:var(--todo-ink-faint);list-style:none}
       .todo-details summary::-webkit-details-marker{display:none}
@@ -390,14 +392,12 @@ window.__ModuleLoader__.load({
       .todo-attach-remove:hover{background:rgba(80,70,40,.08);color:var(--todo-danger)}
       .todo-editor-foot{display:flex;align-items:center;gap:6px;margin-top:1px}
       .todo-textview{cursor:pointer}
-      .todo-view-title{margin:0 0 6px;font-size:16px;line-height:24px;font-weight:600;color:var(--todo-ink);word-break:break-word}
+      .todo-view-title{margin:0 0 6px;padding-right:30px;font-size:16px;line-height:24px;font-weight:600;color:var(--todo-ink);word-break:break-word}
       .todo-view-body{margin:0 0 10px;min-height:40px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word}
       .todo-quick-hint{font-size:11px;line-height:16px;color:var(--todo-ink-faint)}
       .todo-editor-foot .spacer{flex:1}
       .todo-mini{height:28px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--todo-ink-soft);font:inherit;font-size:12px;cursor:pointer}
       .todo-mini:hover{background:rgba(80,70,40,.08)}
-      .todo-mini.primary{background:#2f5d4a;border-color:#2f5d4a;color:#f7f4ea;font-weight:600}
-      .todo-mini.primary:hover{background:#26503f}
       .todo-mini.danger{color:var(--todo-danger)}
       .todo-mini.danger:hover{background:rgba(164,68,60,.1)}
 
@@ -1047,6 +1047,7 @@ window.__ModuleLoader__.load({
       const [error, setError] = React.useState(null)
       const [confirmDelete, setConfirmDelete] = React.useState(false)
       const [position, setPosition] = React.useState({ x: task.x ?? 8, y: task.y ?? 8 })
+      const [maxH, setMaxH] = React.useState(null)
       const [dragging, setDragging] = React.useState(false)
       const dragRef = React.useRef(null)
       const suppressClickRef = React.useRef(0)
@@ -1098,8 +1099,20 @@ window.__ModuleLoader__.load({
         if (dragRef.current === null) setPosition({ x: clampX(task.x ?? 8), y: task.y ?? 8 })
       }, [task.x, task.y, canvasWidth])
 
+      // 矮右栏时限制展开卡高度，内容在卡内滚动，不溢出视口。
+      React.useEffect(() => {
+        const measure = () => {
+          const sc = cardRef.current && cardRef.current.closest('.todo-scroll')
+          if (sc) setMaxH(Math.max(160, sc.clientHeight - 16))
+        }
+        measure()
+        window.addEventListener('resize', measure)
+        return () => window.removeEventListener('resize', measure)
+      }, [])
+
       function clampX(x) {
-        return Math.max(8, Math.min(x, Math.max(8, canvasWidth - 340 - 8)))
+        const w = cardRef.current ? cardRef.current.offsetWidth : 340
+        return Math.max(8, Math.min(x, Math.max(8, canvasWidth - w - 8)))
       }
       function isControl(event) {
         return Boolean(event.target.closest('button, input, textarea, select, summary, label, a, details'))
@@ -1273,7 +1286,7 @@ window.__ModuleLoader__.load({
         className: 'todo-editor' + (dragging ? ' dragging' : '') + (closing ? ' closing' : ''),
         role: 'dialog',
         'aria-label': t('edit'),
-        style: { left: `${position.x}px`, top: `${position.y}px`, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
+        style: { left: `${position.x}px`, top: `${position.y}px`, maxHeight: maxH ? `${maxH}px` : undefined, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
         onPointerDown: (event) => { event.stopPropagation(); handlePointerDown(event) },
         onPointerMove: handlePointerMove,
         onPointerUp: handlePointerUp,
@@ -1283,7 +1296,7 @@ window.__ModuleLoader__.load({
           if (isBlank(event)) collapse()
         },
       },
-        h('span', { className: 'tape', 'aria-hidden': true }),
+        h('span', { className: 'todo-tape', 'aria-hidden': true }),
         h('button', {
           type: 'button',
           className: 'todo-collapse',
@@ -1291,6 +1304,7 @@ window.__ModuleLoader__.load({
           'aria-label': t('collapse'),
           onClick: collapse,
         }, h(CollapseIcon)),
+        h('div', { className: 'todo-editor-body' },
         textMode === 'title'
           ? h('input', {
             ref: titleRef,
@@ -1446,7 +1460,7 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: 'todo-mini danger', onClick: remove },
             confirmDelete ? t('deleteAgain') : t('delete')),
           h('span', { className: 'spacer' }),
-          h('span', { className: 'todo-quick-hint' }, t('quickHint'))))
+          h('span', { className: 'todo-quick-hint' }, t('quickHint')))))
     }
 
     // ---------------------------------------------------------------- 设置弹层
