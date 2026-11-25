@@ -1,0 +1,6 @@
+# 运行配置与任务数据都由插件自己保存在 %DSH_HOME%\dsh-todo\ 下：
+#   config.json（含 llmTools 开关，默认 false）与 tasks.json。
+# 这一层只负责把插件插进 loader 树，不写 config，避免两处配置互相覆盖。
+- insert:
+    - id: todo-wall
+      name: '@xia-sc/dsh-todo'

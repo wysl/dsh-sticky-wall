@@ -1,0 +1,7 @@
+node_modules/
+tmp/
+prototype/
+.selftest-home/
+*.log
+.DS_Store
+Thumbs.db
