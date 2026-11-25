@@ -308,9 +308,12 @@ window.__ModuleLoader__.load({
       .todo-toggle[data-on="true"] .dot{background:var(--dsw-alias-state-success-primary)}
 
       /* ---------------- 便签 ---------------- */
-      .todo-note{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;width:${NOTE_W}px;height:${NOTE_H}px;padding:14px 15px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 72%, #7a621f);box-shadow:var(--dsw-elevation-panel);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none;transition:box-shadow .16s,opacity .2s,filter .2s}
+      .todo-note{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;width:${NOTE_W}px;height:${NOTE_H}px;padding:14px 15px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 72%, #7a621f);box-shadow:var(--dsw-elevation-panel);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none;transition:box-shadow .16s,opacity .2s,filter .2s,background-color .25s,translate .16s,scale .16s;animation:todo-note-in .18s cubic-bezier(.2,.8,.2,1)}
       .todo-note:hover{box-shadow:var(--dsw-elevation-prominent)}
       .todo-note.dragging{cursor:grabbing;z-index:9998;box-shadow:var(--dsw-elevation-prominent)}
+      .todo-note:hover{translate:0 -2px;box-shadow:var(--dsw-elevation-prominent)}
+      .todo-note.removing{animation:todo-note-out .16s ease forwards;pointer-events:none}
+      .todo-note.pulse .todo-tag .dot{animation:todo-dot-pulse .35s ease}
       .todo-note.quiet{opacity:.7;filter:saturate(.75)}
       .todo-note.quiet:hover,.todo-note.quiet:focus-visible{opacity:1;filter:none}
       .todo-note.hidden{display:none}
@@ -335,7 +338,9 @@ window.__ModuleLoader__.load({
       /* ---------------- 原地编辑 ---------------- */
       .todo-editor{position:absolute;z-index:9997;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;width:340px;padding:13px 14px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 62%, #7a621f);box-shadow:var(--dsw-elevation-prominent);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none}
       .todo-editor.dragging{cursor:grabbing;z-index:9998}
+      .todo-editor.closing{pointer-events:none}
       .todo-editor input,.todo-editor textarea,.todo-editor select{user-select:text}
+      .todo-editor .title,.todo-editor textarea,.todo-textview{animation:todo-fade .15s ease}
       .todo-editor .tape{position:absolute;top:-9px;left:50%;width:62px;height:18px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg,rgba(255,255,255,.34),rgba(255,255,255,.74) 40%,rgba(255,255,255,.46));border:1px solid rgba(120,100,60,.14);border-radius:2px;pointer-events:none}
       .todo-editor input.title{width:100%;border:0;border-bottom:1px dashed rgba(120,100,60,.3);background:transparent;padding:2px 0 5px;font:inherit;font-size:17px;font-weight:650;color:var(--todo-ink);outline:none}
       .todo-editor input.title::placeholder,.todo-editor textarea::placeholder{color:var(--todo-ink-faint);font-weight:400}
@@ -443,9 +448,12 @@ window.__ModuleLoader__.load({
       .todo-root .todo-editor input:focus-visible,.todo-root .todo-editor textarea:focus-visible,.todo-root .todo-editor select:focus-visible{outline:none}
       .todo-btn.todo-toggle:hover{background:var(--dsw-alias-interactive-bg-hover)}
       @keyframes todo-fade{from{opacity:0}to{opacity:1}}
+      @keyframes todo-note-in{from{opacity:0;scale:.92}to{opacity:1;scale:1}}
+      @keyframes todo-note-out{to{opacity:0;scale:.9}}
+      @keyframes todo-dot-pulse{0%{scale:1}45%{scale:1.7}100%{scale:1}}
       @media (max-width:900px){.todo-search{width:150px}.todo-brand .sub{display:none}}
       @media (max-width:720px){.todo-topbar{padding:10px 14px}.todo-statusbar{padding:8px 14px}}
-      @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-switch,.todo-switch .knob,.todo-search{transition:none}}
+      @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-note.removing,.todo-note.pulse .todo-tag .dot,.todo-editor .title,.todo-editor textarea,.todo-textview,.todo-switch,.todo-switch .knob,.todo-search{transition:none;animation:none}.todo-note:hover{translate:none}}
     `
 
     /** 入口按钮先于墙面板挂载，CSS 必须全局注入一次，不能只靠面板组件内的 <style>。 */
@@ -880,12 +888,21 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 便签
 
-    function NoteCard({ task, t, canvasWidth, draggingEnabled, onOpen, onMove, onDragY, onDragStart, onDragEnd }) {
+    function NoteCard({ task, t, canvasWidth, draggingEnabled, suppressed, removing, onOpen, onMove, onDragY, onDragStart, onDragEnd }) {
       const nodeRef = React.useRef(null)
       const dragRef = React.useRef(null)
       const suppressClickRef = React.useRef(0)
       const [position, setPosition] = React.useState({ x: task.x ?? 0, y: task.y ?? 0 })
       const [dragging, setDragging] = React.useState(false)
+      const [pulse, setPulse] = React.useState(false)
+      const prevStatus = React.useRef(task.status)
+      React.useEffect(() => {
+        if (prevStatus.current === task.status) return undefined
+        prevStatus.current = task.status
+        setPulse(true)
+        const handle = setTimeout(() => setPulse(false), 380)
+        return () => clearTimeout(handle)
+      }, [task.status])
 
       React.useEffect(() => {
         if (dragRef.current === null) setPosition({ x: clamp(task.x ?? 0), y: task.y ?? 0 })
@@ -961,7 +978,7 @@ window.__ModuleLoader__.load({
 
       return h('article', {
         ref: nodeRef,
-        className: 'todo-note' + (dragging ? ' dragging' : '') + (quiet ? ' quiet' : ''),
+        className: 'todo-note' + (dragging ? ' dragging' : '') + (quiet ? ' quiet' : '') + (removing ? ' removing' : '') + (pulse ? ' pulse' : ''),
         role: 'button',
         tabIndex: 0,
         'aria-label': [task.title || t('titlePlaceholder'), t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1)), when, t('edit')].filter(Boolean).join('，'),
@@ -970,7 +987,7 @@ window.__ModuleLoader__.load({
           top: `${position.y}px`,
           '--todo-paper': paperOf(task),
           transform: dragging ? 'rotate(0deg) scale(1.02)' : `rotate(${tiltOf(task.id)}deg)`,
-          display: task.hidden ? 'none' : undefined,
+          display: (task.hidden || suppressed) ? 'none' : undefined,
         },
         onPointerDown: handlePointerDown,
         onPointerMove: handlePointerMove,
@@ -1003,7 +1020,7 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 原地编辑
 
-    function NoteEditor({ task, t, canvasWidth = 900, store, onClose, onChanged }) {
+    function NoteEditor({ task, t, canvasWidth = 900, store, closing, onClose, onExited, onRemove, onChanged }) {
       const snapshotState = useSnapshot(store)
       // null = 查看/快捷改态；'title' / 'note' = 该文本字段进入编辑。
       const [textMode, setTextMode] = React.useState(null)
@@ -1114,6 +1131,60 @@ window.__ModuleLoader__.load({
         void patch({ x, y })
       }
 
+      function reducedMotion() {
+        return typeof window !== 'undefined' && window.matchMedia
+          && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      }
+      /** 小卡矩形（canvas 坐标 + 滚动偏移），供展开/收回形变对齐。 */
+      function noteRect() {
+        const node = cardRef.current
+        const canvas = node && node.parentElement
+        if (!canvas) return null
+        const r = canvas.getBoundingClientRect()
+        return { left: r.left + (task.x ?? 8), top: r.top + (task.y ?? 8), width: NOTE_W, height: NOTE_H }
+      }
+      // 入场：从小卡矩形“长大”到展开卡（FLIP），观感是同一张纸。
+      React.useEffect(() => {
+        const node = cardRef.current
+        if (!node || reducedMotion()) return undefined
+        const from = noteRect()
+        const to = node.getBoundingClientRect()
+        if (!from || !to.width || !to.height) return undefined
+        const dx = from.left - to.left
+        const dy = from.top - to.top
+        node.style.transformOrigin = 'top left'
+        node.style.transform = `translate(${dx}px, ${dy}px) scale(${from.width / to.width}, ${from.height / to.height})`
+        node.style.opacity = '0.5'
+        const raf = requestAnimationFrame(() => {
+          node.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s ease'
+          node.style.transform = 'translate(0px, 0px) scale(1, 1)'
+          node.style.opacity = '1'
+        })
+        const timer = setTimeout(() => {
+          node.style.transition = ''
+          node.style.transform = ''
+          node.style.opacity = ''
+        }, 260)
+        return () => { cancelAnimationFrame(raf); clearTimeout(timer) }
+      }, [])
+      // 收回：缩回小卡矩形后通知父级卸载。
+      React.useEffect(() => {
+        if (!closing) return undefined
+        const node = cardRef.current
+        if (!node || reducedMotion()) { onExited(); return undefined }
+        const from = node.getBoundingClientRect()
+        const to = noteRect()
+        if (!to || !from.width || !from.height) { onExited(); return undefined }
+        const dx = to.left - from.left
+        const dy = to.top - from.top
+        node.style.transformOrigin = 'top left'
+        node.style.transition = 'transform .18s cubic-bezier(.4,0,.6,1), opacity .18s ease'
+        node.style.transform = `translate(${dx}px, ${dy}px) scale(${to.width / from.width}, ${to.height / from.height})`
+        node.style.opacity = '0.4'
+        const timer = setTimeout(onExited, 190)
+        return () => clearTimeout(timer)
+      }, [closing])
+
       function autosize() {
         const node = bodyRef.current
         if (!node) return
@@ -1153,13 +1224,7 @@ window.__ModuleLoader__.load({
           setConfirmDelete(true)
           return
         }
-        const result = await store.remove(task.id)
-        if (!result.ok) {
-          setError(requestErrorText(t, result))
-          return
-        }
-        onChanged(t('removed'))
-        onClose()
+        onRemove(task.id)
       }
 
       function addAttachment() {
@@ -1189,7 +1254,7 @@ window.__ModuleLoader__.load({
 
       return h('div', {
         ref: cardRef,
-        className: 'todo-editor' + (dragging ? ' dragging' : ''),
+        className: 'todo-editor' + (dragging ? ' dragging' : '') + (closing ? ' closing' : ''),
         role: 'dialog',
         'aria-label': t('edit'),
         style: { left: `${position.x}px`, top: `${position.y}px`, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
@@ -1455,6 +1520,8 @@ window.__ModuleLoader__.load({
       const [settingsOpen, setSettingsOpen] = React.useState(false)
       const [notice, setNotice] = React.useState(null)
       const [busy, setBusy] = React.useState(false)
+      const [closing, setClosing] = React.useState(false)
+      const [removingIds, setRemovingIds] = React.useState([])
       const scrollRef = React.useRef(null)
       const pointerY = React.useRef(null)
       const autoScroll = React.useRef(null)
@@ -1558,8 +1625,30 @@ window.__ModuleLoader__.load({
           return
         }
         draftRef.current = result.data.task.id
+        setClosing(false)
         setEditingId(result.data.task.id)
         setNotice({ kind: 'ok', text: t('created') })
+      }
+
+      /** 收回展开卡：先播缩回小卡的形变，再卸载。 */
+      function collapseEditor() {
+        if (editingId === null || closing) return
+        setClosing(true)
+      }
+      function finishClose() {
+        draftRef.current = null
+        setClosing(false)
+        setEditingId(null)
+      }
+      /** 删除：先播小卡缩淡出，再真正移除。 */
+      function removeNote(id) {
+        if (removingIds.includes(id)) return
+        setRemovingIds(removingIds.concat(id))
+        setTimeout(() => {
+          void store.remove(id)
+          setRemovingIds((list) => list.filter((item) => item !== id))
+          if (editingId === id) finishClose()
+        }, 170)
       }
 
       async function arrange() {
@@ -1625,7 +1714,7 @@ window.__ModuleLoader__.load({
         onClick: (event) => {
           if (editingId === null) return
           if (event.target.closest('.todo-editor') || event.target.closest('.todo-note')) return
-          setEditingId(null)
+          collapseEditor()
         },
       },
         h('div', { ref: canvasRef, className: 'todo-canvas', style: { minHeight: `${canvasHeight}px` } },
@@ -1635,7 +1724,9 @@ window.__ModuleLoader__.load({
             t,
             canvasWidth,
             draggingEnabled: editingId === null,
-            onOpen: () => setEditingId(task.id),
+            suppressed: editingId === task.id,
+            removing: removingIds.includes(task.id),
+            onOpen: () => { setClosing(false); setEditingId(task.id) },
             onMove: moveNote,
             onDragY: (y) => { pointerY.current = y },
             onDragStart: beginDragScroll,
@@ -1647,15 +1738,10 @@ window.__ModuleLoader__.load({
             t,
             canvasWidth,
             store,
-            onClose: () => {
-              draftRef.current = null
-              setEditingId(null)
-            },
-            onCancel: () => {
-              if (draftRef.current === editing.id) void store.remove(editing.id)
-              draftRef.current = null
-              setEditingId(null)
-            },
+            closing,
+            onClose: collapseEditor,
+            onExited: finishClose,
+            onRemove: removeNote,
             onChanged: (message) => setNotice({ kind: 'ok', text: message }),
           }) : null,
           (snapshot.phase === 'ready' && byFilter.length === 0) || (snapshot.phase === 'ready' && tasks.length === 0)
