@@ -41,6 +41,8 @@ window.__ModuleLoader__.load({
       zh: {
         nav: '便签墙',
         guideDesc: '自由摆放的暖色便签 TODO 墙，点开在右栏查看与编辑。',
+        dblEdit: '双击编辑',
+        quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
         subtitle: '一张一张贴上去。状态只是便签里的一个字段。',
         newNote: '新便签',
@@ -138,6 +140,8 @@ window.__ModuleLoader__.load({
       en: {
         nav: 'Sticky wall',
         guideDesc: 'A warm sticky-note TODO wall you can arrange freely; opens in the right sidebar.',
+        dblEdit: 'Double-click to edit',
+        quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
         subtitle: 'Pinned one by one. Status is just a field on the note.',
         newNote: 'New note',
@@ -373,6 +377,10 @@ window.__ModuleLoader__.load({
       .todo-attach-remove{flex:none;border:0;border-radius:4px;background:transparent;color:var(--todo-ink-faint);font:inherit;font-size:11.5px;padding:1px 4px;cursor:pointer}
       .todo-attach-remove:hover{background:rgba(80,70,40,.08);color:var(--todo-danger)}
       .todo-editor-foot{display:flex;align-items:center;gap:6px;margin-top:1px}
+      .todo-textview{cursor:text}
+      .todo-view-title{margin:0 0 6px;font-size:16px;line-height:24px;font-weight:600;color:var(--todo-ink);word-break:break-word}
+      .todo-view-body{margin:0 0 10px;min-height:64px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word}
+      .todo-quick-hint{font-size:11px;line-height:16px;color:var(--todo-ink-faint)}
       .todo-editor-foot .spacer{flex:1}
       .todo-mini{height:28px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--todo-ink-soft);font:inherit;font-size:12px;cursor:pointer}
       .todo-mini:hover{background:rgba(80,70,40,.08)}
@@ -993,44 +1001,31 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 原地编辑
 
-    function NoteEditor({ task, t, canvasWidth = 900, store, onClose, onCancel, onChanged }) {
+    function NoteEditor({ task, t, canvasWidth = 900, store, onClose, onChanged }) {
       const snapshotState = useSnapshot(store)
+      // null = 查看/快捷改态；'title' / 'note' = 该文本字段进入编辑。
+      const [textMode, setTextMode] = React.useState(null)
       const [title, setTitle] = React.useState(task.title)
       const [body, setBody] = React.useState(task.note || '')
-      const [status, setStatus] = React.useState(task.status)
-      const [color, setColor] = React.useState(task.color || 'cream')
-      const [start, setStart] = React.useState(toLocalInput(task.planStartAt))
-      const [end, setEnd] = React.useState(toLocalInput(task.planEndAt))
       const [showEnd, setShowEnd] = React.useState(Boolean(task.planEndAt))
-      const [workspaceId, setWorkspaceId] = React.useState(task.workspaceId || '')
-      const [added, setAdded] = React.useState([])
-      const [removed, setRemoved] = React.useState([])
       const [draftPath, setDraftPath] = React.useState('')
-      const [phase, setPhase] = React.useState('idle')
       const [error, setError] = React.useState(null)
       const [confirmDelete, setConfirmDelete] = React.useState(false)
-      const [showDiscard, setShowDiscard] = React.useState(false)
       const cardRef = React.useRef(null)
-      const bodyRef = React.useRef(null)
       const titleRef = React.useRef(null)
+      const bodyRef = React.useRef(null)
       const endRef = React.useRef(null)
+      const draftRef = React.useRef(null)
+      draftRef.current = { mode: textMode, title, body }
       useFocusTrap(cardRef)
 
-      React.useEffect(() => {
-        requestAnimationFrame(() => {
-          const node = titleRef.current
-          if (!node) return
-          node.focus()
-          node.select()
-        })
+      // 收起 / 切换便签时把未提交的文本草稿落盘，避免丢字。
+      React.useEffect(() => () => {
+        const d = draftRef.current
+        if (!d || !d.mode) return
+        if (d.mode === 'title') void store.update(task.id, { title: d.title.trim() || t('titlePlaceholder') })
+        else void store.update(task.id, { note: d.body })
       }, [])
-
-      const baselineRef = React.useRef(null)
-      if (baselineRef.current === null) {
-        baselineRef.current = JSON.stringify([task.title, task.note || '', task.status, task.color || 'cream', task.workspaceId || '', toLocalInput(task.planStartAt), toLocalInput(task.planEndAt)])
-      }
-      const dirty = baselineRef.current !== JSON.stringify([title, body, status, color, workspaceId, start, end])
-        || added.length > 0 || removed.length > 0
 
       React.useEffect(() => {
         if (!confirmDelete) return undefined
@@ -1041,12 +1036,23 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         const onKey = (event) => {
           if (event.key !== 'Escape') return
-          if (dirty) setShowDiscard(true)
-          else onCancel()
+          commitText()
+          onClose()
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-      }, [dirty, onCancel])
+      }, [textMode, title, body])
+
+      React.useEffect(() => {
+        if (textMode === 'title' && titleRef.current) {
+          titleRef.current.focus()
+          titleRef.current.select()
+        }
+        if (textMode === 'note' && bodyRef.current) {
+          bodyRef.current.focus()
+          autosize()
+        }
+      }, [textMode])
 
       function autosize() {
         const node = bodyRef.current
@@ -1054,57 +1060,32 @@ window.__ModuleLoader__.load({
         node.style.height = 'auto'
         node.style.height = `${Math.min(240, Math.max(88, node.scrollHeight))}px`
       }
-      React.useEffect(() => {
-        requestAnimationFrame(autosize)
-      }, [])
 
-      const attachments = (task.attachments || [])
-        .filter((entry) => removed.indexOf(entry.id) < 0)
-        .concat(added)
-
-      function addAttachment() {
-        const raw = draftPath.trim()
-        if (!raw) return
-        const separator = raw.indexOf('::')
-        const name = separator > 0 ? raw.slice(0, separator).trim() : ''
-        const path = separator > 0 ? raw.slice(separator + 2).trim() : raw
-        if (!path) return
-        setAdded(added.concat({ name, path }))
-        setDraftPath('')
+      /** 控件即改即存：纸色 / 时间 / 状态 / 工作区 / 附件。 */
+      async function patch(fields) {
+        const result = await store.update(task.id, fields)
+        if (!result.ok) setError(requestErrorText(t, result))
+        return result.ok
       }
 
-      function requestClose() {
-        if (dirty) setShowDiscard(true)
-        else onCancel()
+      /** 提交当前文本草稿并回到查看态。 */
+      function commitText() {
+        const d = draftRef.current
+        if (!d || !d.mode) return
+        const mode = d.mode
+        setTextMode(null)
+        if (mode === 'title') void patch({ title: d.title.trim() || t('titlePlaceholder') })
+        else void patch({ note: d.body })
       }
 
-      async function save() {
-        if (phase === 'saving') return
-        if (title.trim() === '' && body.trim() === '') {
-          setError(t('titleRequired'))
-          return
-        }
-        setPhase('saving')
-        setError(null)
-        const patch = {
-          title: title.trim() || t('titlePlaceholder'),
-          note: body,
-          status,
-          color,
-          workspaceId: workspaceId || null,
-          planStartAt: fromLocalInput(start),
-          planEndAt: fromLocalInput(end),
-        }
-        if (added.length > 0) patch.addAttachments = added
-        if (removed.length > 0) patch.removeAttachments = removed
-        const result = await store.update(task.id, patch)
-        setPhase('idle')
-        if (!result.ok) {
-          setError(requestErrorText(t, result))
-          return
-        }
-        onChanged(t('saved'))
+      function collapse() {
+        commitText()
         onClose()
+      }
+
+      /** 空白区域 = 非控件、非文本展示区；点它收回小卡面。 */
+      function isBlank(event) {
+        return !event.target.closest('button, input, textarea, select, summary, label, a, .todo-textview')
       }
 
       async function remove() {
@@ -1112,9 +1093,7 @@ window.__ModuleLoader__.load({
           setConfirmDelete(true)
           return
         }
-        setPhase('deleting')
         const result = await store.remove(task.id)
-        setPhase('idle')
         if (!result.ok) {
           setError(requestErrorText(t, result))
           return
@@ -1123,19 +1102,30 @@ window.__ModuleLoader__.load({
         onClose()
       }
 
-      const attachmentsRows = attachments.map((entry, index) => h('li', { key: entry.id || `new-${index}`, className: 'todo-attach' },
+      function addAttachment() {
+        const raw = draftPath.trim()
+        if (!raw) return
+        const separator = raw.indexOf('::')
+        const name = separator > 0 ? raw.slice(0, separator).trim() : ''
+        const path = separator > 0 ? raw.slice(separator + 2).trim() : raw
+        if (!path) return
+        setDraftPath('')
+        void patch({ addAttachments: [{ name, path }] })
+      }
+
+      const attachments = task.attachments || []
+      const attachmentsRows = attachments.map((entry) => h('li', { key: entry.id, className: 'todo-attach' },
         h('span', { className: 'todo-attach-name' }, entry.name || entry.path),
         h('span', { className: 'todo-attach-path' }, entry.path),
         entry.missing ? h('span', { className: 'todo-attach-warn' }, t('missingFile')) : null,
         h('button', {
           type: 'button',
           className: 'todo-attach-remove',
-          onClick: () => {
-            if (entry.id) setRemoved(removed.concat(entry.id))
-            else setAdded(added.filter((item) => item !== entry))
-          },
+          onClick: () => { void patch({ removeAttachments: [entry.id] }) },
         }, t('remove'))))
 
+      const start = toLocalInput(task.planStartAt)
+      const end = toLocalInput(task.planEndAt)
       const left = Math.max(8, Math.min(task.x ?? 8, Math.max(8, canvasWidth - 356)))
       const top = Math.max(8, task.y ?? 8)
 
@@ -1144,39 +1134,54 @@ window.__ModuleLoader__.load({
         className: 'todo-editor',
         role: 'dialog',
         'aria-label': t('edit'),
-        style: { left: `${left}px`, top: `${top}px`, '--todo-paper': `var(--todo-paper-${PAPER[color] ? color : 'cream'})` },
+        style: { left: `${left}px`, top: `${top}px`, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
         onPointerDown: (event) => event.stopPropagation(),
+        onClick: (event) => { if (isBlank(event)) collapse() },
       },
         h('span', { className: 'tape', 'aria-hidden': true }),
-        h('input', {
-          ref: titleRef,
-          className: 'title',
-          value: title,
-          maxLength: 200,
-          placeholder: t('titlePlaceholder'),
-          'aria-label': t('titleField'),
-          onChange: (event) => setTitle(event.target.value),
-          onKeyDown: (event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              if (bodyRef.current) bodyRef.current.focus()
-            }
-          },
-        }),
-        h('textarea', {
-          ref: bodyRef,
-          value: body,
-          maxLength: 4000,
-          placeholder: t('bodyPlaceholder'),
-          'aria-label': t('noteField'),
-          onChange: (event) => { setBody(event.target.value); autosize() },
-          onKeyDown: (event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-              event.preventDefault()
-              void save()
-            }
-          },
-        }),
+        textMode === 'title'
+          ? h('input', {
+            ref: titleRef,
+            className: 'title',
+            value: title,
+            maxLength: 200,
+            placeholder: t('titlePlaceholder'),
+            'aria-label': t('titleField'),
+            onChange: (event) => setTitle(event.target.value),
+            onBlur: commitText,
+            onKeyDown: (event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                commitText()
+              }
+            },
+          })
+          : h('h2', {
+            className: 'todo-textview todo-view-title',
+            title: t('dblEdit'),
+            onDoubleClick: () => { setTitle(task.title); setTextMode('title') },
+          }, task.title || t('titlePlaceholder')),
+        textMode === 'note'
+          ? h('textarea', {
+            ref: bodyRef,
+            value: body,
+            maxLength: 4000,
+            placeholder: t('bodyPlaceholder'),
+            'aria-label': t('noteField'),
+            onChange: (event) => { setBody(event.target.value); autosize() },
+            onBlur: commitText,
+            onKeyDown: (event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                event.preventDefault()
+                commitText()
+              }
+            },
+          })
+          : h('p', {
+            className: 'todo-textview todo-view-body',
+            title: t('dblEdit'),
+            onDoubleClick: () => { setBody(task.note || ''); setTextMode('note') },
+          }, task.note || ''),
         h('div', { className: 'todo-editor-row' },
           h('span', { className: 'label' }, t('paperColor')),
           h('div', { className: 'todo-palette', role: 'group', 'aria-label': t('paperColor') },
@@ -1186,9 +1191,9 @@ window.__ModuleLoader__.load({
               className: 'todo-swatch',
               style: { '--swatch': `var(--todo-paper-${id})` },
               'aria-label': t('color' + id.charAt(0).toUpperCase() + id.slice(1)),
-              'aria-pressed': color === id ? 'true' : 'false',
+              'aria-pressed': (task.color || 'cream') === id ? 'true' : 'false',
               title: t('color' + id.charAt(0).toUpperCase() + id.slice(1)),
-              onClick: () => setColor(id),
+              onClick: () => { void patch({ color: id }) },
             })))),
         h('div', { className: 'todo-time-row' },
           h('label', { className: 'todo-field' },
@@ -1197,7 +1202,7 @@ window.__ModuleLoader__.load({
               type: 'datetime-local',
               value: start,
               'aria-label': t('planStartField'),
-              onChange: (event) => setStart(event.target.value),
+              onChange: (event) => { void patch({ planStartAt: fromLocalInput(event.target.value) }) },
             })),
           h('div', { className: 'todo-field todo-end-field' },
             h('div', { className: 'todo-field-head' },
@@ -1207,8 +1212,8 @@ window.__ModuleLoader__.load({
                     type: 'button',
                     className: 'todo-time-clear',
                     onClick: () => {
-                      setEnd('')
                       setShowEnd(false)
+                      void patch({ planEndAt: null })
                     },
                   }, t('clearTime'))
                 : null),
@@ -1218,7 +1223,7 @@ window.__ModuleLoader__.load({
                   type: 'datetime-local',
                   value: end,
                   'aria-label': t('planEndField'),
-                  onChange: (event) => setEnd(event.target.value),
+                  onChange: (event) => { void patch({ planEndAt: fromLocalInput(event.target.value) }) },
                 })
               : h('button', {
                   type: 'button',
@@ -1231,7 +1236,7 @@ window.__ModuleLoader__.load({
                   },
                 }, t('addEnd')))),
         h('p', { className: 'todo-time-hint' }, t('timeOptionalHint')),
-        (start && end && new Date(end) < new Date(start))
+        (task.planStartAt && task.planEndAt && new Date(task.planEndAt) < new Date(task.planStartAt))
           ? h('p', { className: 'todo-invalid' }, t('timeWarning'))
           : null,
         h('div', { className: 'todo-status-row', role: 'group', 'aria-label': t('statusField') },
@@ -1240,22 +1245,22 @@ window.__ModuleLoader__.load({
             type: 'button',
             className: 'todo-status-btn',
             'data-status': value,
-            'aria-pressed': status === value ? 'true' : 'false',
-            onClick: () => setStatus(value),
+            'aria-pressed': task.status === value ? 'true' : 'false',
+            onClick: () => { void patch({ status: value }) },
           }, h('i', { className: 'dot' }), t('status' + value.charAt(0).toUpperCase() + value.slice(1))))),
         h('details', { className: 'todo-details' },
           h('summary', null, t('moreFields')),
           h('label', { className: 'todo-field', style: { marginBottom: '7px' } },
             h('span', null, t('workspaceField')),
             h('select', {
-              value: workspaceId,
+              value: task.workspaceId || '',
               'aria-label': t('workspaceField'),
-              onChange: (event) => setWorkspaceId(event.target.value),
+              onChange: (event) => { void patch({ workspaceId: event.target.value || null }) },
             },
               h('option', { value: '' }, t('unlinked')),
               ...(snapshotState.workspaces || []).map((item) => h('option', { key: item.id, value: item.id }, item.title || item.path || item.id)),
-              workspaceId && !(snapshotState.workspaces || []).some((item) => item.id === workspaceId)
-                ? h('option', { value: workspaceId }, t('removedWorkspace'))
+              task.workspaceId && !(snapshotState.workspaces || []).some((item) => item.id === task.workspaceId)
+                ? h('option', { value: task.workspaceId }, t('removedWorkspace'))
                 : null)),
           h('div', { className: 'todo-field' },
             h('span', null, t('attachmentsField')),
@@ -1277,23 +1282,11 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'todo-mini', onClick: addAttachment }, t('addAttachment'))),
             h('p', { style: { margin: '0', fontSize: '11px', lineHeight: '16px', color: 'var(--todo-ink-faint)' } }, t('attachmentHint')))),
         error ? h('p', { className: 'todo-invalid', role: 'alert' }, error) : null,
-        showDiscard
-          ? h('div', { className: 'todo-editor-row' },
-            h('p', { style: { margin: 0, flex: '1 1 150px', fontSize: '11px', lineHeight: '16px', color: 'var(--todo-ink-faint)' } }, t('discardAsk')),
-            h('button', { type: 'button', className: 'todo-mini danger', onClick: onCancel }, t('discardDiscard')),
-            h('button', { type: 'button', className: 'todo-mini', onClick: () => setShowDiscard(false) }, t('discardKeep')))
-          : null,
         h('div', { className: 'todo-editor-foot' },
-          h('button', { type: 'button', className: 'todo-mini danger', disabled: phase === 'deleting', onClick: remove },
-            phase === 'deleting' ? t('deleting') : (confirmDelete ? t('deleteAgain') : t('delete'))),
+          h('button', { type: 'button', className: 'todo-mini danger', onClick: remove },
+            confirmDelete ? t('deleteAgain') : t('delete')),
           h('span', { className: 'spacer' }),
-          h('button', { type: 'button', className: 'todo-mini', onClick: requestClose }, t('cancel')),
-          h('button', {
-            type: 'button',
-            className: 'todo-mini primary',
-            disabled: phase === 'saving' || phase === 'deleting',
-            onClick: save,
-          }, phase === 'saving' ? t('saving') : t('save'))))
+          h('span', { className: 'todo-quick-hint' }, t('quickHint'))))
     }
 
     // ---------------------------------------------------------------- 设置弹层
@@ -1553,7 +1546,16 @@ window.__ModuleLoader__.load({
             onClick: () => setSettingsOpen(true),
           }, h(GearIcon))))
 
-      const wall = h('div', { ref: scrollRef, className: 'todo-scroll' },
+      const wall = h('div', {
+        ref: scrollRef,
+        className: 'todo-scroll',
+        // 点空白墙面（非便签、非展开卡）收回小卡面；未提交文本由 NoteEditor 卸载时落盘。
+        onClick: (event) => {
+          if (editingId === null) return
+          if (event.target.closest('.todo-editor') || event.target.closest('.todo-note')) return
+          setEditingId(null)
+        },
+      },
         h('div', { ref: canvasRef, className: 'todo-canvas', style: { minHeight: `${canvasHeight}px` } },
           ...tasks.slice().sort((left, right) => String(left.updatedAt || '').localeCompare(String(right.updatedAt || ''))).map((task) => h(NoteCard, {
             key: task.id,
