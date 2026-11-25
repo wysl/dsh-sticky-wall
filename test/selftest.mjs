@@ -1,7 +1,7 @@
 // 离线自检：不启动宿主，用桩 ctx 验证 Host 半侧的存储、路由、工具注册开关与工具行为。
 // 运行：node test/selftest.mjs
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -328,12 +328,31 @@ check('旧数据自动补位置与纸色',
   && migratedTasks[0].x === 24 && migratedTasks[1].x === 288,
   JSON.stringify(migratedTasks.map((task) => [task.title, task.x, task.y, task.color])))
 
-// ---------------------------------------------------------------- 坏文件重置
+// ---------------------------------------------------------------- 坏文件留档
 
 writeFileSync(join(HOME, 'dsh-todo', 'tasks.json'), '{ broken json')
 apply(makeContext(), {})
 const moved = readFileSync(join(HOME, 'dsh-todo', 'tasks.json'), 'utf8')
 check('坏掉的任务文件被重置为空清单', moved.includes('"tasks": []'))
+const corruptBackups = readdirSync(join(HOME, 'dsh-todo')).filter((name) => name.startsWith('tasks.json.corrupt-'))
+check('非法 JSON 改名留档而不是静默覆盖',
+  corruptBackups.length === 1
+  && readFileSync(join(HOME, 'dsh-todo', corruptBackups[0]), 'utf8').includes('{ broken json'),
+  corruptBackups.join(','))
+
+writeFileSync(join(HOME, 'dsh-todo', 'tasks.json'), JSON.stringify({ version: 1, nope: true }))
+apply(makeContext(), {})
+const shapeBackups = readdirSync(join(HOME, 'dsh-todo')).filter((name) => name.startsWith('tasks.json.corrupt-')).sort()
+check('合法 JSON 但结构不对也留档',
+  shapeBackups.length >= 1
+  && readFileSync(join(HOME, 'dsh-todo', shapeBackups[shapeBackups.length - 1]), 'utf8').includes('"nope"')
+  && readFileSync(join(HOME, 'dsh-todo', 'tasks.json'), 'utf8').includes('"tasks": []'),
+  shapeBackups.join(','))
+
+writeFileSync(join(HOME, 'dsh-todo', 'config.json'), '{ broken config')
+apply(makeContext(), {})
+check('坏掉的设置文件回落默认值',
+  JSON.parse(readFileSync(join(HOME, 'dsh-todo', 'config.json'), 'utf8')).llmTools === false)
 
 rmSync(HOME, { recursive: true, force: true })
 

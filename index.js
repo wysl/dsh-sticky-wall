@@ -209,15 +209,12 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value))
 }
 
+/** 文件不存在 / 为空 → undefined；内容读不出或非法 JSON 会抛错，由调用方决定怎么兜底。 */
 function readJson(file) {
-  try {
-    if (!existsSync(file)) return undefined
-    const text = readFileSync(file, 'utf8').trim()
-    if (!text) return undefined
-    return JSON.parse(text)
-  } catch {
-    return undefined
-  }
+  if (!existsSync(file)) return undefined
+  const text = readFileSync(file, 'utf8').trim()
+  if (!text) return undefined
+  return JSON.parse(text)
 }
 
 function writeJsonAtomic(file, value) {
@@ -265,7 +262,13 @@ function createStore(ctx) {
     }
   }
   function loadFromDisk() {
-      const payload = readJson(TASKS_FILE)
+      let payload
+      try {
+        payload = readJson(TASKS_FILE)
+      } catch {
+        // 非法 JSON / 读不出来：按损坏处理，走下面的改名留档分支，不静默覆盖。
+        payload = null
+      }
       if (payload === undefined) {
         store.items = []
         writeJsonAtomic(TASKS_FILE, { version: STORE_VERSION, tasks: [] })
@@ -926,7 +929,12 @@ function createLoaderTool(tools, agentTools) {
 export function apply(ctx, rawConfig = {}) {
   mkdirSync(DATA_DIR, { recursive: true })
 
-  const stored = readJson(CONFIG_FILE)
+  let stored
+  try {
+    stored = readJson(CONFIG_FILE)
+  } catch {
+    stored = undefined // 坏掉的设置文件回落到默认值，行为与旧版一致
+  }
   const config = { ...DEFAULT_CONFIG, ...(isPlainObject(rawConfig) ? rawConfig : {}), ...(isPlainObject(stored) ? stored : {}) }
   config.llmTools = config.llmTools === true
   if (!isPlainObject(stored)) writeJsonAtomic(CONFIG_FILE, { llmTools: config.llmTools })
