@@ -308,7 +308,7 @@ window.__ModuleLoader__.load({
       .todo-toggle[data-on="true"] .dot{background:var(--dsw-alias-state-success-primary)}
 
       /* ---------------- 便签 ---------------- */
-      .todo-note{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;width:${NOTE_W}px;height:${NOTE_H}px;padding:14px 15px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 72%, #7a621f);box-shadow:var(--dsw-elevation-panel);color:var(--todo-ink);cursor:grab;user-select:none;touch-action:none;transition:box-shadow .16s,opacity .2s,filter .2s}
+      .todo-note{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;width:${NOTE_W}px;height:${NOTE_H}px;padding:14px 15px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 72%, #7a621f);box-shadow:var(--dsw-elevation-panel);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none;transition:box-shadow .16s,opacity .2s,filter .2s}
       .todo-note:hover{box-shadow:var(--dsw-elevation-prominent)}
       .todo-note.dragging{cursor:grabbing;z-index:9998;box-shadow:var(--dsw-elevation-prominent)}
       .todo-note.quiet{opacity:.7;filter:saturate(.75)}
@@ -333,7 +333,9 @@ window.__ModuleLoader__.load({
       .todo-note-when.warn{color:var(--todo-danger)}
 
       /* ---------------- 原地编辑 ---------------- */
-      .todo-editor{position:absolute;z-index:9997;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;width:340px;padding:13px 14px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 62%, #7a621f);box-shadow:var(--dsw-elevation-prominent);color:var(--todo-ink)}
+      .todo-editor{position:absolute;z-index:9997;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;width:340px;padding:13px 14px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 62%, #7a621f);box-shadow:var(--dsw-elevation-prominent);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none}
+      .todo-editor.dragging{cursor:grabbing;z-index:9998}
+      .todo-editor input,.todo-editor textarea,.todo-editor select{user-select:text}
       .todo-editor .tape{position:absolute;top:-9px;left:50%;width:62px;height:18px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg,rgba(255,255,255,.34),rgba(255,255,255,.74) 40%,rgba(255,255,255,.46));border:1px solid rgba(120,100,60,.14);border-radius:2px;pointer-events:none}
       .todo-editor input.title{width:100%;border:0;border-bottom:1px dashed rgba(120,100,60,.3);background:transparent;padding:2px 0 5px;font:inherit;font-size:17px;font-weight:650;color:var(--todo-ink);outline:none}
       .todo-editor input.title::placeholder,.todo-editor textarea::placeholder{color:var(--todo-ink-faint);font-weight:400}
@@ -377,7 +379,7 @@ window.__ModuleLoader__.load({
       .todo-attach-remove{flex:none;border:0;border-radius:4px;background:transparent;color:var(--todo-ink-faint);font:inherit;font-size:11.5px;padding:1px 4px;cursor:pointer}
       .todo-attach-remove:hover{background:rgba(80,70,40,.08);color:var(--todo-danger)}
       .todo-editor-foot{display:flex;align-items:center;gap:6px;margin-top:1px}
-      .todo-textview{cursor:text}
+      .todo-textview{cursor:pointer}
       .todo-view-title{margin:0 0 6px;font-size:16px;line-height:24px;font-weight:600;color:var(--todo-ink);word-break:break-word}
       .todo-view-body{margin:0 0 10px;min-height:64px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word}
       .todo-quick-hint{font-size:11px;line-height:16px;color:var(--todo-ink-faint)}
@@ -1011,6 +1013,10 @@ window.__ModuleLoader__.load({
       const [draftPath, setDraftPath] = React.useState('')
       const [error, setError] = React.useState(null)
       const [confirmDelete, setConfirmDelete] = React.useState(false)
+      const [position, setPosition] = React.useState({ x: task.x ?? 8, y: task.y ?? 8 })
+      const [dragging, setDragging] = React.useState(false)
+      const dragRef = React.useRef(null)
+      const suppressClickRef = React.useRef(0)
       const cardRef = React.useRef(null)
       const titleRef = React.useRef(null)
       const bodyRef = React.useRef(null)
@@ -1053,6 +1059,56 @@ window.__ModuleLoader__.load({
           autosize()
         }
       }, [textMode])
+
+      // 展开卡和小卡一样可拖：外部位置变化时同步（拖动中不覆盖）。
+      React.useEffect(() => {
+        if (dragRef.current === null) setPosition({ x: clampX(task.x ?? 8), y: task.y ?? 8 })
+      }, [task.x, task.y, canvasWidth])
+
+      function clampX(x) {
+        return Math.max(8, Math.min(x, Math.max(8, canvasWidth - 340 - 8)))
+      }
+      function isControl(event) {
+        return Boolean(event.target.closest('button, input, textarea, select, summary, label, a, details'))
+      }
+      function handlePointerDown(event) {
+        if (event.button !== 0 || isControl(event)) return
+        const node = cardRef.current
+        if (!node) return
+        dragRef.current = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          origX: position.x,
+          origY: position.y,
+          moved: false,
+        }
+        node.setPointerCapture(event.pointerId)
+        event.preventDefault()
+      }
+      function handlePointerMove(event) {
+        const drag = dragRef.current
+        if (!drag || drag.pointerId !== event.pointerId) return
+        const dx = event.clientX - drag.startX
+        const dy = event.clientY - drag.startY
+        if (!drag.moved && Math.hypot(dx, dy) > 5) {
+          drag.moved = true
+          setDragging(true)
+        }
+        if (!drag.moved) return
+        setPosition({ x: clampX(drag.origX + dx), y: Math.max(8, drag.origY + dy) })
+      }
+      function handlePointerUp(event) {
+        const drag = dragRef.current
+        if (!drag || drag.pointerId !== event.pointerId) return
+        dragRef.current = null
+        if (!drag.moved) return
+        setDragging(false)
+        suppressClickRef.current = Date.now()
+        const x = clampX(drag.origX + (event.clientX - drag.startX))
+        const y = Math.max(8, drag.origY + (event.clientY - drag.startY))
+        void patch({ x, y })
+      }
 
       function autosize() {
         const node = bodyRef.current
@@ -1126,17 +1182,21 @@ window.__ModuleLoader__.load({
 
       const start = toLocalInput(task.planStartAt)
       const end = toLocalInput(task.planEndAt)
-      const left = Math.max(8, Math.min(task.x ?? 8, Math.max(8, canvasWidth - 356)))
-      const top = Math.max(8, task.y ?? 8)
 
       return h('div', {
         ref: cardRef,
-        className: 'todo-editor',
+        className: 'todo-editor' + (dragging ? ' dragging' : ''),
         role: 'dialog',
         'aria-label': t('edit'),
-        style: { left: `${left}px`, top: `${top}px`, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
-        onPointerDown: (event) => event.stopPropagation(),
-        onClick: (event) => { if (isBlank(event)) collapse() },
+        style: { left: `${position.x}px`, top: `${position.y}px`, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
+        onPointerDown: (event) => { event.stopPropagation(); handlePointerDown(event) },
+        onPointerMove: handlePointerMove,
+        onPointerUp: handlePointerUp,
+        onPointerCancel: handlePointerUp,
+        onClick: (event) => {
+          if (Date.now() - suppressClickRef.current < 300) return
+          if (isBlank(event)) collapse()
+        },
       },
         h('span', { className: 'tape', 'aria-hidden': true }),
         textMode === 'title'
@@ -1159,7 +1219,11 @@ window.__ModuleLoader__.load({
           : h('h2', {
             className: 'todo-textview todo-view-title',
             title: t('dblEdit'),
-            onDoubleClick: () => { setTitle(task.title); setTextMode('title') },
+            onDoubleClick: () => {
+              if (Date.now() - suppressClickRef.current < 300) return
+              setTitle(task.title)
+              setTextMode('title')
+            },
           }, task.title || t('titlePlaceholder')),
         textMode === 'note'
           ? h('textarea', {
@@ -1180,7 +1244,11 @@ window.__ModuleLoader__.load({
           : h('p', {
             className: 'todo-textview todo-view-body',
             title: t('dblEdit'),
-            onDoubleClick: () => { setBody(task.note || ''); setTextMode('note') },
+            onDoubleClick: () => {
+              if (Date.now() - suppressClickRef.current < 300) return
+              setBody(task.note || '')
+              setTextMode('note')
+            },
           }, task.note || ''),
         h('div', { className: 'todo-editor-row' },
           h('span', { className: 'label' }, t('paperColor')),
