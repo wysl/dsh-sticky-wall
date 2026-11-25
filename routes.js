@@ -2,8 +2,9 @@
 //
 // Client 半侧无法 import Host 代码，而 `ctx.remote` 的命名空间在应用组装时固定，
 // 所以插件自己的浏览器半侧经应用自带的 HTTP 载体访问 Host 半侧。
-// 每条路由都声明 `auth: 'required'`：准入（Host/Origin 检查 + 登录 Cookie）由
-// `webServer` 在 HTTP 层执行，插件不再复制一份，因此只有已登录页面能读写便签。
+// 每条路由都声明 `auth: 'required'`：DSH 0.2.3+ 的 webServer 在 HTTP 层执行准入
+// （Host/Origin 检查 + 登录 Cookie）；0.2.2-rc.5 的 WebRoute 没有该字段、会忽略它，
+// 该版本下面板 API 仅由回环地址暴露，没有登录门禁。
 //
 // 面板与 agent 工具调用的是同一套 operations（见 index.js），不存在第二份业务逻辑。
 

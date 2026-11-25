@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- 兼容 DSH **0.2.2-rc.5**：`engines.dsh` 扩展为 `^0.2.2-rc.5 || ^0.2.3-alpha.2`，并在独立 profile 上实机验证面板、路由、设置行与整合交互。
+- 无功能变更；0.2.2-rc.5 的 `webServer` 不识别 `auth: 'required'`，该版本下面板 API 没有登录门禁，仅限本机回环使用。
+
 ## 0.1.1
 
 - 首个通过 GitHub Actions **OIDC（Trusted Publishing）** 发布、带 npm provenance 的版本。

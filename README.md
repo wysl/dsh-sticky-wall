@@ -32,6 +32,16 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 
 安装后刷新 Web GUI，左侧边栏出现「便签墙」。面板与设置文案随界面语言切换（zh / en），默认中文。插件设置保存在 `%DSH_HOME%\dsh-todo\config.json`，便签数据保存在同目录的 `tasks.json`。
 
+## 兼容性
+
+| DSH 版本 | 状态 | 验证 |
+| --- | --- | --- |
+| 0.2.3-alpha.2 | ✅ 已验证 | 当前开发版本；面板、设置行、LLM 工具按需加载日常使用 |
+| 0.2.2-rc.5 | ✅ 功能可用 | 2026-11-25 独立 profile 实机验证：侧栏入口、主面板、创建/编辑/拖动/整理/搜索/状态筛选、`/dsh-todo/api` 路由、设置弹层与「设置 → 通用」行均正常 |
+| 其他 0.2.x | 未验证 | `engines.dsh` 只覆盖上面两个范围，安装会被拒绝；其他版本可用精确版本豁免自行尝试，风险自担 |
+
+0.2.2-rc.5 的 `webServer` 不识别 `auth: 'required'`（该字段是 0.2.3 才加入的）：功能不受影响，但面板 API 在该版本上没有登录门禁，只由回环地址暴露。请勿把该版本的 Web 端口开放到局域网或公网。
+
 ## 位置与入口
 
 | 位置 | 内容 |
@@ -102,7 +112,7 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 
 ## 限制
 
-- 便签墙面板通过 Web GUI 自身的 HTTP 载体（`webServer`）读写数据，路由前缀 `/dsh-todo/api`，每条路由都要求登录（`auth: 'required'`）。没有 `webServer` 的宿主（例如纯 CLI）里，agent 工具照常工作，只是没有面板。
+- 便签墙面板通过 Web GUI 自身的 HTTP 载体（`webServer`）读写数据，路由前缀 `/dsh-todo/api`。0.2.3+ 的每条路由都要求登录（`auth: 'required'`）；DSH 0.2.2-rc.5 的 `webServer` 不识别该字段，面板 API 没有登录门禁，仅适合本机回环使用。没有 `webServer` 的宿主（例如纯 CLI）里，agent 工具照常工作，只是没有面板。
 - 便签纸是刻意的暖色纸板（六种固定纸色 + 纸面墨色），浅色和深色主题下都保持便签观感；界面壳层仍只用宿主主题 token。
 - 附件是引用，不复制文件；删除原文件后附件行会标记「文件不存在」。
 - 拖动用 pointer 事件实现，桌面鼠标与触屏都能拖；触屏上便签正文内部的触摸滚动会被拖动手势占用。
