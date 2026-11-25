@@ -1083,8 +1083,8 @@ window.__ModuleLoader__.load({
           origY: position.y,
           moved: false,
         }
-        node.setPointerCapture(event.pointerId)
-        event.preventDefault()
+        // 不在这里捕获指针 / preventDefault：否则 click、dblclick 会被重定向到卡根，
+        // 双击编辑失效、单击误触「点空白收起」。越过拖动阈值后才捕获。
       }
       function handlePointerMove(event) {
         const drag = dragRef.current
@@ -1094,6 +1094,10 @@ window.__ModuleLoader__.load({
         if (!drag.moved && Math.hypot(dx, dy) > 5) {
           drag.moved = true
           setDragging(true)
+          const node = cardRef.current
+          if (node) {
+            try { node.setPointerCapture(event.pointerId) } catch { /* 捕获失败不阻塞拖动 */ }
+          }
         }
         if (!drag.moved) return
         setPosition({ x: clampX(drag.origX + dx), y: Math.max(8, drag.origY + dy) })
