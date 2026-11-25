@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![npm](https://img.shields.io/npm/v/@xia-sc/dsh-todo.svg)](https://www.npmjs.com/package/@xia-sc/dsh-todo)
 
-把 TODO 当成便签贴在墙上：左侧边栏「便签墙」进入主面板，便签可以拖到墙上任意位置，点一下原地展开编辑。状态只是便签里的一个字段，不是分区。工作区、起止时间、文档附件都是可选字段，留空就是一张普通便签。开启设置后，LLM 可以按需加载工具，读取和改写同一堵墙。
+把 TODO 当成便签贴在墙上：点会话标题栏右上或左侧栏底部图标排里的便签按钮，在**右侧栏**新开一个便签墙标签（不占用主对话区）；便签可以拖到墙上任意位置，点一下原地展开编辑。状态只是便签里的一个字段，不是分区。工作区、起止时间、文档附件都是可选字段，留空就是一张普通便签。开启设置后，LLM 可以按需加载工具，读取和改写同一堵墙。
 
 ## 预览
 
@@ -30,7 +30,7 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 
 本地目录安装是链接整个目录；改完 `client.js`/`index.js` 后让插件管理器重载即可，不需要构建。
 
-安装后刷新 Web GUI，左侧边栏出现「便签墙」。面板与设置文案随界面语言切换（zh / en），默认中文。插件设置保存在 `%DSH_HOME%\dsh-todo\config.json`，便签数据保存在同目录的 `tasks.json`。
+安装后刷新 Web GUI，会话标题栏右上与左侧栏底部图标排出现便签按钮，点开在右侧栏打开便签墙。面板与设置文案随界面语言切换（zh / en），默认中文。插件设置保存在 `%DSH_HOME%\dsh-todo\config.json`，便签数据保存在同目录的 `tasks.json`。
 
 ## 兼容性
 
@@ -46,8 +46,9 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 
 | 位置 | 内容 |
 | --- | --- |
-| 左侧边栏导航行 | 「便签墙」图标入口（`sidebar.panellist`，id `todo-wall`），行尾显示待完成张数 |
-| 主面板 | 便签墙（`main`，key `todo-wall`），点侧栏入口切过来 |
+| 会话标题栏右上图标排 | 便签入口按钮（`conversation.session.header.utilities`，id `todo-wall`），带待完成红点 |
+| 左侧栏底部图标排 | 同一个便签入口按钮（`sidebar.footer.action`，id `todo-wall`），带待完成红点 |
+| 右侧栏标签 | 便签墙面板（`sidebar.right.pane.tab`，key `todo-wall`）；点上面任一按钮在右栏新开 / 切到该标签，不盖住主对话区 |
 | 设置 → 通用 | 「允许 LLM 读取和改写任务」开关（`settings.general.item`） |
 | 便签墙顶部的齿轮 / 底部 LLM 状态按钮 | 同一个开关，并显示任务数据与设置文件路径 |
 

@@ -1,9 +1,11 @@
 // TODO 便签墙 —— Client 半侧（Web GUI）。
 //
-// 三处贡献，共用同一个数据源：
-//   1. sidebar.panellist：侧边栏入口图标（点开后主面板切到 todo-wall）。
-//   2. main（key = todo-wall）：便签墙面板。
-//   3. settings.general.item：设置 → 通用里的「允许 LLM 读取和改写任务」开关。
+// 四处贡献，共用同一个数据源：
+//   1. conversation.session.header.utilities：会话标题栏右上图标排里的入口按钮。
+//   2. sidebar.footer.action：左侧栏底部图标排里的入口按钮。
+//      两个按钮都点开右侧栏的便签墙标签（sidebar.right.pane.tab），不占用主对话区。
+//   3. sidebar.right.pane.tab（key = todo-wall）：右栏里的便签墙面板。
+//   4. settings.general.item：设置 → 通用里的「允许 LLM 读取和改写任务」开关。
 //
 // 数据经同源 HTTP 路由 /dsh-todo/api 读写 Host 半侧（见 routes.js）。
 // 界面壳层只用宿主 --dsw-alias-* / 结构变量；便签纸是刻意的纸张色板与纸面墨色
@@ -415,6 +417,12 @@ window.__ModuleLoader__.load({
       /* ---------------- 侧栏图标 / 计数 ---------------- */
       .todo-pending{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums;padding:0 2px}
       .todo-pending-dot{display:block;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-business-primary)}
+      /* 右上 / 左下两个入口按钮：贴合宿主图标排的尺寸与配色 */
+      .todo-headbtn,.todo-footerbtn{position:relative;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:none;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;flex:none}
+      .todo-headbtn:hover,.todo-footerbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+      .todo-headbtn .todo-pending-dot,.todo-footerbtn .todo-pending-dot{position:absolute;top:3px;right:3px}
+      /* 右栏标签体：撑满右栏面板高度 */
+      .todo-pane{height:100%;min-height:0;display:flex;flex-direction:column}
 
       .todo-root :focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary));outline-offset:2px}
       .todo-root .todo-note:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary)),var(--dsw-elevation-prominent)}
@@ -1599,10 +1607,35 @@ window.__ModuleLoader__.load({
         settingsOpen ? h(SettingsDialog, { t, store, onClose: () => setSettingsOpen(false) }) : null)
     }
 
-    // ---------------------------------------------------------------- 侧栏与设置
+    // ---------------------------------------------------------------- 入口按钮与右栏面板
 
-    function SidebarEntry({ size = 16 }) {
-      return h(NoteIcon, { size: size || 16 })
+    /** 会话标题栏右上图标排里的入口：点开右栏便签墙。 */
+    function HeaderToggle(props) {
+      const t = props.t || translator
+      return h('button', {
+        type: 'button',
+        className: 'todo-headbtn',
+        title: t('nav'),
+        'aria-label': t('nav'),
+        onClick: () => { if (typeof props.open === 'function') props.open(props.sid) },
+      }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false }))
+    }
+
+    /** 左侧栏底部图标排里的入口：点开右栏便签墙。 */
+    function FooterToggle(props) {
+      const t = props.t || translator
+      return h('button', {
+        type: 'button',
+        className: 'todo-footerbtn',
+        title: t('nav'),
+        'aria-label': t('nav'),
+        onClick: () => { if (typeof props.open === 'function') props.open() },
+      }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false }))
+    }
+
+    /** 右栏标签体：便签墙撑满右栏面板。 */
+    function PaneBody() {
+      return h('div', { className: 'todo-pane' }, h(WallPanel))
     }
 
     function PendingBadge({ wide = true }) {
@@ -1692,27 +1725,57 @@ window.__ModuleLoader__.load({
       const slots = ctx.slots
       if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return
 
-      slots.inject('sidebar.panellist', () => slots.register({
-        name: 'sidebar.panellist',
+      // 两个入口按钮：右上会话标题栏图标排、左下侧栏底部图标排。
+      slots.inject('conversation.session.header.utilities', () => slots.register({
+        name: 'conversation.session.header.utilities',
         id: PANEL_ID,
-        order: 5,
-        label: () => t('nav'),
-      }, SidebarEntry))
+        order: -5,
+        locale: NS,
+        inject: (sessionId) => ({ sid: sessionId, t, open: openRight }),
+      }, HeaderToggle))
 
-      slots.inject('main', () => slots.register({ name: 'main', key: PANEL_ID }, WallPanel))
-
-      slots.inject('sidebar.panellist.trailing', () => slots.register({
-        name: 'sidebar.panellist.trailing',
+      slots.inject('sidebar.footer.action', () => slots.register({
+        name: 'sidebar.footer.action',
         id: PANEL_ID,
-      }, PendingBadge))
+        locale: NS,
+        inject: () => ({ t, open: openRight }),
+      }, FooterToggle))
 
       slots.inject('settings.general.item', () => slots.register({
         name: 'settings.general.item',
         id: 'todo-wall-llm',
         order: 42,
       }, GeneralSettingsRow))
+
+      // 右栏标签页：便签墙开在右侧栏，不盖住主对话区。服务缺失时只保留入口按钮以外的贡献。
+      if (typeof ctx.inject === 'function') {
+        ctx.inject(['sidebarRight', 'sidebarRightTabs'], (scope) => {
+          const right = scope.sidebarRight
+          const tabs = scope.sidebarRightTabs
+          if (!right || !tabs || typeof tabs.register !== 'function' || typeof right.openTab !== 'function') return
+          scope.effect(() => {
+            openRight = () => {
+              try { right.openTab(PANEL_ID) } catch (error) { console.warn('[todo-wall] open right pane', error) }
+            }
+            return () => { openRight = () => {} }
+          }, 'todo-wall: right opener')
+          scope.effect(() => tabs.register({
+            id: PANEL_ID,
+            kind: PANEL_ID,
+            title: () => t('nav'),
+            keepMounted: true,
+          }), 'todo-wall: right tab type')
+          scope.effect(() => slots.inject('sidebar.right.pane.tab', () => slots.register({
+            name: 'sidebar.right.pane.tab',
+            key: PANEL_ID,
+            locale: NS,
+            inject: (sessionId) => ({ sid: sessionId, t }),
+          }, PaneBody)), 'todo-wall: right tab body')
+        })
+      }
     }
 
+    let openRight = () => {}
     let translator = (key, params) => formatEntry(DICT.zh[key] === undefined ? key : DICT.zh[key], params)
 
     return { inject: ['slots', 'locale'], apply }
