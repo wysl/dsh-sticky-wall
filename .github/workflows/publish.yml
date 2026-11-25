@@ -1,0 +1,71 @@
+# Publish to npm with Trusted Publishing (OIDC).
+#
+# No npm token is used: the job exchanges GitHub's OIDC identity token for a
+# short-lived publish credential. The matching trusted publisher must be
+# configured on npm with:
+#   package            @xia-sc/dsh-todo
+#   repository         xia-sc/dsh-todo
+#   workflow filename  publish.yml
+#
+# First publish is done manually by the maintainer (npm token). After the
+# trusted publisher is configured, trigger this workflow by publishing a
+# GitHub Release (tag must match package.json's version) or by running this
+# workflow manually from the Actions tab.
+
+name: Publish
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to npm via OIDC
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Show versions
+        run: |
+          node --version
+          npm --version
+
+      - name: Verify package name and version
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          test "$NAME" = "@xia-sc/dsh-todo"
+          echo "publishing $NAME@$VERSION"
+
+      - name: Verify the release tag matches package.json
+        if: github.event_name == 'release'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          test "v$VERSION" = "$GITHUB_REF_NAME"
+
+      - name: Syntax check
+        run: |
+          node --check index.js
+          node --check routes.js
+          node --check client.js
+
+      - name: Self-test
+        run: node test/selftest.mjs
+
+      - name: Publish
+        run: npm publish --access public --provenance

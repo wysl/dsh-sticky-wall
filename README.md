@@ -12,11 +12,25 @@
 
 ## 安装
 
-1. 克隆本仓库到本地（纯 JavaScript，无构建步骤，不需要安装依赖）。
-2. 打开 DSH 的 **Plugins** 页 → **Add plugin**，选择本目录安装。
-3. 刷新 Web GUI，左侧边栏出现「便签墙」。
+### 从 npm 安装（发布后推荐）
 
-插件设置保存在 `%DSH_HOME%\dsh-todo\config.json`，便签数据保存在同目录的 `tasks.json`。
+DSH 已连接 npm 时，直接以包名安装：
+
+```js
+plugin_manager({ action: 'install_bundle', target: '@xia-sc/dsh-todo' })
+```
+
+也可以在 **Plugins → 添加插件** 中填入同样的包名。
+
+### 从本地目录安装（开发）
+
+```js
+plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
+```
+
+本地目录安装是链接整个目录；改完 `client.js`/`index.js` 后让插件管理器重载即可，不需要构建。
+
+安装后刷新 Web GUI，左侧边栏出现「便签墙」。面板与设置文案随界面语言切换（zh / en），默认中文。插件设置保存在 `%DSH_HOME%\dsh-todo\config.json`，便签数据保存在同目录的 `tasks.json`。
 
 ## 位置与入口
 
