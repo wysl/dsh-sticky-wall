@@ -186,17 +186,18 @@ const fakeAgent = {
 }
 const loader = registered[0]
 const loadedText = (await loader.execute({}, { agent: fakeAgent })).text
-check('加载入口调用后出现三个工具',
-  agentRegistered.length === 3
-  && agentRegistered.map((tool) => tool.name).sort().join(',') === 'todo_list,todo_split,todo_update',
+check('加载入口调用后出现四个工具',
+  agentRegistered.length === 4
+  && agentRegistered.map((tool) => tool.name).sort().join(',') === 'todo_create,todo_list,todo_split,todo_update',
   `${agentRegistered.map((tool) => tool.name).join(',')} :: ${loadedText}`)
 
 const againText = (await loader.execute({}, { agent: fakeAgent })).text
-check('重复调用不会重复注册', agentRegistered.length === 3 && /already loaded/.test(againText), againText)
+check('重复调用不会重复注册', agentRegistered.length === 4 && /already loaded/.test(againText), againText)
 const noAgentText = (await loader.execute({}, {})).text
-check('没有 agent 上下文时不加载', agentRegistered.length === 3 && /No agent context/.test(noAgentText), noAgentText)
+check('没有 agent 上下文时不加载', agentRegistered.length === 4 && /No agent context/.test(noAgentText), noAgentText)
 
 const listTool = agentRegistered.find((tool) => tool.name === 'todo_list')
+const createTool = agentRegistered.find((tool) => tool.name === 'todo_create')
 const updateTool = agentRegistered.find((tool) => tool.name === 'todo_update')
 const splitTool = agentRegistered.find((tool) => tool.name === 'todo_split')
 
@@ -223,6 +224,18 @@ const afterSplit = await callRoute('/state', 'GET')
 const children = afterSplit.body.data.tasks.filter((task) => task.parentId === plainId)
 check('子便签带 parentId 且为规划中', children.length === 2 && children.every((task) => task.status === 'planned'),
   JSON.stringify(children.map((task) => [task.title, task.status])))
+
+const createdViaTool = await createTool.execute({ title: '工具新建的便签', note: '由 todo_create 创建' }, {})
+check('todo_create 直接新建便签', /Created \[todo_/.test(createdViaTool.text), createdViaTool.text)
+const afterCreate = await callRoute('/state', 'GET')
+const toolNote = afterCreate.body.data.tasks.find((task) => task.title === '工具新建的便签')
+check('todo_create 只给标题 = 普通便签且已落盘',
+  toolNote && toolNote.status === 'planned' && toolNote.workspaceId === null
+  && toolNote.planStartAt === null && toolNote.attachments.length === 0
+  && typeof toolNote.x === 'number' && typeof toolNote.y === 'number',
+  JSON.stringify(toolNote))
+const createNoTitle = await createTool.execute({ note: '没有标题' }, {}).then(() => null, (error) => error)
+check('todo_create 缺标题被拒绝', createNoTitle && /title is required/.test(createNoTitle.message), String(createNoTitle))
 
 const disabled = await callRoute('/config', 'POST', { llmTools: false })
 check('关闭后入口与已加载工具都撤销',
@@ -267,6 +280,37 @@ check('arrange 拒绝不存在的便签',
   badArrange.status === 404 && badArrange.body?.code === 'NOT_FOUND',
   JSON.stringify(badArrange.body))
 
+// ---------------------------------------------------------------- 外部直写热重载
+
+const beforeExternal = await callRoute('/state', 'GET')
+const externalTasks = beforeExternal.body.data.tasks.map((task) => ({ ...task }))
+externalTasks.push({
+  id: 'todo_external1',
+  title: '外部写入的便签',
+  status: 'planned',
+  createdAt: '2026-11-25T00:00:00.000Z',
+  updatedAt: '2026-11-25T00:00:00.000Z',
+})
+writeFileSync(join(HOME, 'dsh-todo', 'tasks.json'), JSON.stringify({ version: 1, tasks: externalTasks }))
+const externalList = (await listTool.execute({ status: 'all', limit: 50 }, {})).text
+check('外部直写 tasks.json 后无需重启即可看到', externalList.includes('外部写入的便签'), externalList)
+const externalUpdated = await updateTool.execute({ id: 'todo_external1', status: 'active' }, {})
+check('外部写入的便签可以直接修改', /Updated \[todo_external1\]/.test(externalUpdated.text), externalUpdated.text)
+const afterExternal = JSON.parse(readFileSync(join(HOME, 'dsh-todo', 'tasks.json'), 'utf8'))
+check('回写不丢外部便签也不丢原有便签',
+  afterExternal.tasks.some((task) => task.id === 'todo_external1' && task.status === 'active')
+  && afterExternal.tasks.length === externalTasks.length,
+  JSON.stringify(afterExternal.tasks.map((task) => task.id)))
+
+// ---------------------------------------------------------------- 删除与留档
+
+const removed = await callRoute('/tasks/delete', 'POST', { id: plainId })
+const afterDelete = await callRoute('/state', 'GET')
+check('删除父便签不连带删除子便签',
+  removed.body?.ok === true
+  && afterDelete.body.data.tasks.filter((task) => task.title === '收集图片').every((task) => task.parentId === null),
+  JSON.stringify(removed.body?.data))
+
 // ---------------------------------------------------------------- 旧数据迁移
 
 writeFileSync(join(HOME, 'dsh-todo', 'tasks.json'), JSON.stringify({
@@ -284,19 +328,12 @@ check('旧数据自动补位置与纸色',
   && migratedTasks[0].x === 24 && migratedTasks[1].x === 288,
   JSON.stringify(migratedTasks.map((task) => [task.title, task.x, task.y, task.color])))
 
-// ---------------------------------------------------------------- 删除与留档
-
-const removed = await callRoute('/tasks/delete', 'POST', { id: plainId })
-const afterDelete = await callRoute('/state', 'GET')
-check('删除父便签不连带删除子便签',
-  removed.body?.ok === true
-  && afterDelete.body.data.tasks.filter((task) => task.title === '收集图片').every((task) => task.parentId === null),
-  JSON.stringify(removed.body?.data))
+// ---------------------------------------------------------------- 坏文件重置
 
 writeFileSync(join(HOME, 'dsh-todo', 'tasks.json'), '{ broken json')
 apply(makeContext(), {})
 const moved = readFileSync(join(HOME, 'dsh-todo', 'tasks.json'), 'utf8')
-check('坏掉的任务文件被改名留档', moved.includes('"tasks": []'))
+check('坏掉的任务文件被重置为空清单', moved.includes('"tasks": []'))
 
 rmSync(HOME, { recursive: true, force: true })
 

@@ -84,20 +84,21 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 
 工具**默认不注册**。开关在「设置 → 通用」或便签墙底部的 LLM 状态按钮里，值保存在 `%DSH_HOME%\dsh-todo\config.json` 的 `llmTools`（默认 `false`）。
 
-开启后并不是一口气塞进三个工具，而是**按需加载**：
+开启后并不是一口气塞进四个工具，而是**按需加载**：
 
 1. 模型先只看到 `todo_load_tools` 一个入口（描述里说明它能加载什么）。
-2. 模型调用一次，三个墙工具才注册进**当前 agent 的作用域**，从下一步起可见可调用。子 agent 要各自加载。
+2. 模型调用一次，四个墙工具才注册进**当前 agent 的作用域**，从下一步起可见可调用。子 agent 要各自加载。
 3. 关掉开关：入口和已经加载的工具一起撤销；重新开启后需要模型再次调用入口。
 
 | 工具 | 作用 | 主要参数 |
 | --- | --- | --- |
-| `todo_load_tools` | 按需加载入口：把下面三个工具加载到当前 agent | 无 |
+| `todo_load_tools` | 按需加载入口：把下面四个工具加载到当前 agent | 无 |
 | `todo_list` | 查看工具区（便签墙）内待完成的任务：默认只返回「规划中 + 进行中」，只读 | `status`（`pending`/`planned`/`active`/`done`/`cancelled`/`all`）、`workspace`（工作区 id 或标题片段）、`query`、`limit`（1–50，默认 20） |
+| `todo_create` | 新建一张便签：只有标题必填，其余可选；默认「规划中」，自动落网格位。不要直接改存储文件 | `title`（必填）、`note`、`status`、`workspaceId`、`planStartAt`、`planEndAt`、`attachments` |
 | `todo_update` | 修改一张便签：标题、正文、四状态、工作区、起止时间、附件增删；`clear` 可清空可选字段 | `id`（必填）、`title`、`note`、`status`、`workspaceId`、`planStartAt`、`planEndAt`、`clear`、`addAttachments`、`removeAttachments` |
 | `todo_split` | 拆解：把一张便签拆成多张子便签，保留父子关系，子便签默认「规划中」并继承父便签的工作区 | `id`（必填）、`subtasks`（1–12 个标题）、`note`、`status`（`planned`/`active`）、`markParentActive`、`inheritWorkspace` |
 
-- **开启后**：只注册 `todo_load_tools`；调用后三个工具进入当前 agent 作用域，面板与工具调用同一套 operations。
+- **开启后**：只注册 `todo_load_tools`；调用后四个工具进入当前 agent 作用域，面板与工具调用同一套 operations。
 - **关闭时**：注册被撤销（包括已加载到各 agent 的工具），工具不出现在工具表里，模型既看不到也无法调用；已创建的便签不受影响。切换立即生效，不需要重启。
 - 便签的摆放位置与纸色由面板维护；LLM 工具不修改这两个字段。
 
@@ -109,6 +110,8 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 | `%DSH_HOME%\dsh-todo\config.json` | `{ "llmTools": false }` |
 
 `tasks.json` 手改坏时不会静默覆盖：原文件改名为 `tasks.json.corrupt-<时间戳>.json` 留档，再从空清单开始。旧数据缺少 `x`/`y`/`color` 时会在载入时补网格位置、默认米黄纸并回写。
+
+文件被外部改动（手改、别的进程写入）时，面板和工具在下一次读写前会按 mtime+size 察觉并自动重载，不需要重启 DSH；回写也不会盖掉外部改动。即便如此，新建便签仍请走面板或 `todo_create`，不要直接写存储文件。
 
 ## 限制
 
@@ -126,7 +129,7 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 | 2 四种状态 | `planned`/`active`/`done`/`cancelled`，便签上的状态小标签 + 编辑态状态分段按钮，校验拒绝其他值 |
 | 3 计划开始与预计结束时间 | `planStartAt`/`planEndAt`（可选），便签底部一行时间；编辑态填开始，结束按需添加/清除 |
 | 4 文档附件 | `attachments`（可选），编辑态「更多字段」里增删、缺失标记 |
-| 7 LLM 工具 + 开关 | `todo_load_tools` 按需加载入口 + `todo_list`/`todo_update`/`todo_split`；`llmTools` 默认 `false`，设置 → 通用里开启，关闭时连入口一起撤销 |
+| 7 LLM 工具 + 开关 | `todo_load_tools` 按需加载入口 + `todo_list`/`todo_create`/`todo_update`/`todo_split`；`llmTools` 默认 `false`，设置 → 通用里开启，关闭时连入口一起撤销 |
 | 便签墙形态 | 自由摆放的暖色便签、纸色预选、原地展开编辑、整理、搜索与状态筛选 |
 | 可选字段留空 | 仅标题必填；全空即普通便签，墙上只有标题、正文和状态标签，创建不做前置校验 |
 | 开关默认关闭 | `config.json` 默认 `{"llmTools": false}`，工具默认不注册，底部显示「LLM 工具默认关闭」 |

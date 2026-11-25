@@ -18,7 +18,7 @@ import { registerRoutes } from './routes.js'
 export const name = '@xia-sc/dsh-todo'
 export const inject = ['tools']
 
-const PLUGIN_VERSION = '0.1.3'
+const PLUGIN_VERSION = '0.1.4'
 const HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
 const DATA_DIR = join(HOME, 'dsh-todo')
 const TASKS_FILE = join(DATA_DIR, 'tasks.json')
@@ -253,9 +253,18 @@ function workspaceOptions(ctx) {
 }
 
 function createStore(ctx) {
-  const store = {
-    items: [],
-    load() {
+  // 每次载入 / 回写后记下文件的 mtime+size；发现外部改动（手改 tasks.json、
+  // 别的进程写入）就重新载入，避免内存旧数据盖掉或挡住外部改动。
+  let stamp = null
+  function fileStamp() {
+    try {
+      const stat = statSync(TASKS_FILE)
+      return `${stat.mtimeMs}:${stat.size}`
+    } catch {
+      return null
+    }
+  }
+  function loadFromDisk() {
       const payload = readJson(TASKS_FILE)
       if (payload === undefined) {
         store.items = []
@@ -312,12 +321,23 @@ function createStore(ctx) {
         migrated = true
       }
       if (migrated) writeJsonAtomic(TASKS_FILE, { version: STORE_VERSION, tasks: store.items })
+  }
+  const store = {
+    items: [],
+    load() {
+      loadFromDisk()
+      stamp = fileStamp()
+    },
+    /** 文件被外部改过才重载；没改就用内存数据，不反复读盘。 */
+    refresh() {
+      if (fileStamp() !== stamp) store.load()
     },
     read() {
       return clone(store.items)
     },
     persist() {
       writeJsonAtomic(TASKS_FILE, { version: STORE_VERSION, tasks: store.items })
+      stamp = fileStamp()
     },
   }
   store.load()
@@ -610,6 +630,16 @@ function createOperations(ctx, store, configRef, syncTools) {
     },
   }
 
+  // 每次读写前先看 tasks.json 是否被外部改过（手改、别的进程写入），
+  // 改过就先重载：面板与工具看到同一面最新的墙，回写也不盖掉外部改动。
+  for (const key of ['state', 'list', 'create', 'update', 'arrange', 'remove', 'split']) {
+    const operation = operations[key]
+    operations[key] = (...args) => {
+      store.refresh()
+      return operation(...args)
+    }
+  }
+
   /** 工具结果文本：只读列表，方便模型直接引用 id。 */
   function renderList(result) {
     if (result.tasks.length === 0) {
@@ -634,7 +664,7 @@ function toolOutput() {
 }
 
 /**
- * 三个 LLM 工具。它们只在设置 llmTools === true 时注册。
+ * 四个 LLM 工具。它们只在设置 llmTools === true 时注册。
  * 参数与面板操作完全同义：面板与工具调用同一套 operations。
  */
 function createTools(operations, renderList) {
@@ -674,6 +704,59 @@ function createTools(operations, renderList) {
           limit: args.limit,
         })
         return { text: renderList(result) }
+      },
+    },
+    {
+      name: 'todo_create',
+      description: 'Create a new note on the user\'s sticky-note wall (todo list). Only title is required; '
+        + 'workspace, planned start / expected end time and document attachments are optional — leave them out '
+        + 'and the note is a plain sticky note. Status defaults to planned. The note is placed on the wall '
+        + 'automatically; position and paper color are managed by the panel. Use this instead of editing '
+        + 'the storage file directly.',
+      parameters: {
+        title: {
+          type: 'string',
+          required: true,
+          description: 'Note title, 1-200 characters. It is the note itself.',
+        },
+        note: { type: 'string', description: 'Optional body text, up to 4000 characters.' },
+        status: {
+          type: 'string',
+          enum: ['planned', 'active', 'done', 'cancelled'],
+          description: 'Initial status. Defaults to planned (规划中).',
+        },
+        workspaceId: {
+          type: 'string',
+          description: 'Optional workspace id to link. Omit for a plain note.',
+        },
+        planStartAt: {
+          type: 'string',
+          description: 'Optional planned start, ISO date-time such as 2026-11-25T09:00:00+08:00.',
+        },
+        planEndAt: {
+          type: 'string',
+          description: 'Optional expected end, ISO date-time. May be omitted even when planStartAt is set.',
+        },
+        attachments: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional document references, each "name::path" or a bare path or URL, up to 20.',
+        },
+      },
+      output: toolOutput(),
+      async execute(args) {
+        const result = operations.create({
+          title: args.title,
+          note: args.note,
+          status: args.status,
+          workspaceId: args.workspaceId,
+          planStartAt: args.planStartAt,
+          planEndAt: args.planEndAt,
+          attachments: args.attachments,
+        })
+        const lines = [`Created [${result.task.id}] ${result.task.title} — ${result.task.status}`]
+        if (result.warning) lines.push(`warning: ${result.warning}`)
+        return { text: lines.join('\n') }
       },
     },
     {
@@ -791,18 +874,18 @@ function createTools(operations, renderList) {
 }
 
 /**
- * 按需加载入口：模型先只看到这一个工具，调用后才把三个墙工具注册进
+ * 按需加载入口：模型先只看到这一个工具，调用后才把四个墙工具注册进
  * 当前 agent 的作用域（下一步起可见）。工具随 agent 销毁；关闭开关或卸载
  * 插件时由 apply 统一撤销。
- * @param tools - 三个墙工具定义。
+ * @param tools - 四个墙工具定义。
  * @param agentTools - agentId → 该 agent 作用域内工具 disposer 的映射。
  */
 function createLoaderTool(tools, agentTools) {
   return {
     name: 'todo_load_tools',
     description: 'Load the sticky-wall tools for this agent: todo_list (list pending notes), '
-      + 'todo_update (change one note) and todo_split (split a note into subtasks). '
-      + 'Call this once when the user asks about their sticky wall or todos; the three tools become '
+      + 'todo_create (add a new note), todo_update (change one note) and todo_split (split a note into subtasks). '
+      + 'Call this once when the user asks about their sticky wall or todos; the four tools become '
       + 'callable from the next step. They are not loaded before this call.',
     parameters: {},
     output: toolOutput(),
@@ -812,7 +895,7 @@ function createLoaderTool(tools, agentTools) {
         return { text: 'No agent context is available, so the sticky-wall tools were not loaded.' }
       }
       if (agentTools.has(agent.id)) {
-        return { text: 'The sticky-wall tools are already loaded: todo_list, todo_update, todo_split.' }
+        return { text: 'The sticky-wall tools are already loaded: todo_list, todo_create, todo_update, todo_split.' }
       }
       const scoped = agent.ctx && agent.ctx.tools
       if (!scoped || typeof scoped.register !== 'function') {
@@ -829,7 +912,7 @@ function createLoaderTool(tools, agentTools) {
       }
       agentTools.set(agent.id, disposers)
       return {
-        text: 'Sticky-wall tools loaded: todo_list, todo_update, todo_split. '
+        text: 'Sticky-wall tools loaded: todo_list, todo_create, todo_update, todo_split. '
           + 'They are callable from the next step. todo_list defaults to pending notes (planned + in progress).',
       }
     },
@@ -852,7 +935,7 @@ export function apply(ctx, rawConfig = {}) {
   const store = createStore(ctx)
 
   // 工具注册/撤销：设置一改就生效，不需要重载插件。
-  // 默认只注册一个按需加载入口；三个墙工具在模型调用入口后进入当前 agent 作用域。
+  // 默认只注册一个按需加载入口；四个墙工具在模型调用入口后进入当前 agent 作用域。
   const toolDisposers = []
   const agentTools = new Map()
   let toolsOn = false
