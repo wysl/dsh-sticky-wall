@@ -42,6 +42,7 @@ window.__ModuleLoader__.load({
         nav: '便签墙',
         guideDesc: '自由摆放的暖色便签 TODO 墙，点开在右栏查看与编辑。',
         dblEdit: '双击编辑',
+        collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
         subtitle: '一张一张贴上去。状态只是便签里的一个字段。',
@@ -141,6 +142,7 @@ window.__ModuleLoader__.load({
         nav: 'Sticky wall',
         guideDesc: 'A warm sticky-note TODO wall you can arrange freely; opens in the right sidebar.',
         dblEdit: 'Double-click to edit',
+        collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
         subtitle: 'Pinned one by one. Status is just a field on the note.',
@@ -248,8 +250,8 @@ window.__ModuleLoader__.load({
         --todo-paper-rose:#f7dfe3;
         --todo-paper-lilac:#e9e2f4;
         --todo-ink:#2b271f;
-        --todo-ink-soft:#6a6354;
-        --todo-ink-faint:#9a9284;
+        --todo-ink-soft:#5d5648;
+        --todo-ink-faint:#6f6858;
         --todo-danger:#a4443c;
         --todo-paper-line:rgba(120,100,60,.2);
         --todo-paper-line-strong:rgba(120,100,60,.32);
@@ -293,7 +295,7 @@ window.__ModuleLoader__.load({
         .todo-btn.icon:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
         .todo-btn.danger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger)}
       }
-      .todo-scroll{position:relative;flex:1;min-height:0;overflow:auto;scrollbar-gutter:stable;background-image:radial-gradient(var(--dsw-alias-border-l2) 1px, transparent 1px);background-size:22px 22px;background-position:-1px -1px}
+      .todo-scroll{position:relative;flex:1;min-height:0;overflow:auto;scrollbar-gutter:stable;background-image:radial-gradient(var(--dsw-alias-border-l1) 1px, transparent 1px);background-size:22px 22px;background-position:-1px -1px}
       .todo-canvas{position:relative;min-width:100%;min-height:100%}
       .todo-notice{margin:8px 20px 0;font-size:12px;line-height:18px;color:var(--dsw-alias-state-success-primary)}
       .todo-error{margin:8px 20px 0;font-size:12px;line-height:18px;color:var(--dsw-alias-state-error-primary)}
@@ -339,23 +341,26 @@ window.__ModuleLoader__.load({
       .todo-editor{position:absolute;z-index:9997;box-sizing:border-box;display:flex;flex-direction:column;gap:9px;width:340px;padding:13px 14px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 62%, #7a621f);box-shadow:var(--dsw-elevation-prominent);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none}
       .todo-editor.dragging{cursor:grabbing;z-index:9998}
       .todo-editor.closing{pointer-events:none}
+      .todo-collapse{position:absolute;top:8px;right:8px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:none;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--todo-ink-faint);cursor:pointer}
+      .todo-collapse:hover{background:rgba(120,100,60,.12);color:var(--todo-ink)}
       .todo-editor input,.todo-editor textarea,.todo-editor select{user-select:text}
       .todo-editor .title,.todo-editor textarea,.todo-textview{animation:todo-fade .15s ease}
       .todo-editor .tape{position:absolute;top:-9px;left:50%;width:62px;height:18px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg,rgba(255,255,255,.34),rgba(255,255,255,.74) 40%,rgba(255,255,255,.46));border:1px solid rgba(120,100,60,.14);border-radius:2px;pointer-events:none}
       .todo-editor input.title{width:100%;border:0;border-bottom:1px dashed rgba(120,100,60,.3);background:transparent;padding:2px 0 5px;font:inherit;font-size:17px;font-weight:650;color:var(--todo-ink);outline:none}
       .todo-editor input.title::placeholder,.todo-editor textarea::placeholder{color:var(--todo-ink-faint);font-weight:400}
-      .todo-editor textarea{width:100%;min-height:88px;max-height:240px;resize:none;border:0;background:transparent;padding:2px 0;font:inherit;font-size:13px;line-height:1.6;color:var(--todo-ink-soft);outline:none;overflow-y:auto}
+      .todo-editor textarea{width:100%;min-height:64px;max-height:240px;resize:none;border:0;background:transparent;padding:2px 0;font:inherit;font-size:13px;line-height:1.6;color:var(--todo-ink-soft);outline:none;overflow-y:auto}
       .todo-editor-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
       .todo-editor-row .label{font-size:11px;color:var(--todo-ink-faint);white-space:nowrap}
       .todo-palette{display:flex;align-items:center;gap:6px}
-      .todo-swatch{width:18px;height:18px;padding:0;border-radius:50%;border:1px solid rgba(90,75,40,.26);cursor:pointer;background:var(--swatch)}
+      .todo-swatch{width:22px;height:22px;padding:0;border-radius:50%;border:1px solid rgba(90,75,40,.26);cursor:pointer;background:var(--swatch)}
+      .todo-swatch:focus-visible{outline:2px solid var(--todo-ink-soft);outline-offset:2px}
       .todo-swatch[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 0 3px #2f5d4a}
       .todo-time-row{display:flex;flex-direction:column;gap:8px}
       .todo-field{display:flex;flex-direction:column;gap:3px;min-width:0}
       .todo-field > span{font-size:11px;color:var(--todo-ink-faint)}
-      .todo-field input,.todo-field select{box-sizing:border-box;width:100%;height:30px;padding:0 7px;border:1px solid rgba(120,100,60,.24);border-radius:7px;background:rgba(255,255,255,.55);color:var(--todo-ink);font:inherit;font-size:12px;outline:none;min-width:0}
-      .todo-field input:focus,.todo-field select:focus{border-color:#2f5d4a;box-shadow:0 0 0 2px rgba(47,93,74,.14)}
-      .todo-field input::-webkit-calendar-picker-indicator{opacity:.45;cursor:pointer}
+      .todo-field input,.todo-field select{box-sizing:border-box;width:100%;height:30px;padding:0 7px;border:1px solid rgba(120,100,60,.3);border-radius:7px;background:rgba(120,100,60,.07);color:var(--todo-ink);font:inherit;font-size:12px;outline:none;min-width:0;color-scheme:light}
+      .todo-field input:focus,.todo-field select:focus{border-color:var(--todo-ink-soft);box-shadow:0 0 0 2px rgba(93,86,72,.16)}
+      .todo-field input::-webkit-calendar-picker-indicator{opacity:.55;cursor:pointer}
       .todo-field-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
       .todo-field-head > span{font-size:11px;color:var(--todo-ink-faint)}
       .todo-time-clear{padding:0;border:0;background:none;font-size:10px;line-height:14px;color:var(--todo-ink-faint);cursor:pointer}
@@ -386,7 +391,7 @@ window.__ModuleLoader__.load({
       .todo-editor-foot{display:flex;align-items:center;gap:6px;margin-top:1px}
       .todo-textview{cursor:pointer}
       .todo-view-title{margin:0 0 6px;font-size:16px;line-height:24px;font-weight:600;color:var(--todo-ink);word-break:break-word}
-      .todo-view-body{margin:0 0 10px;min-height:64px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word}
+      .todo-view-body{margin:0 0 10px;min-height:40px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word}
       .todo-quick-hint{font-size:11px;line-height:16px;color:var(--todo-ink-faint)}
       .todo-editor-foot .spacer{flex:1}
       .todo-mini{height:28px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--todo-ink-soft);font:inherit;font-size:12px;cursor:pointer}
@@ -823,6 +828,17 @@ window.__ModuleLoader__.load({
         'aria-hidden': true,
         style: { display: 'block' },
       }, h('path', { d: 'M3.9 3.9 12.1 12.1M12.1 3.9 3.9 12.1', stroke: 'currentColor', strokeWidth: 1.2, strokeLinecap: 'round' }))
+    }
+
+    function CollapseIcon() {
+      return h('svg', {
+        width: 14,
+        height: 14,
+        viewBox: '0 0 16 16',
+        fill: 'none',
+        'aria-hidden': true,
+        style: { display: 'block' },
+      }, h('path', { d: 'M4 5.5 8 9.5 12 5.5M4 12.5h8', stroke: 'currentColor', strokeWidth: 1.2, strokeLinecap: 'round', strokeLinejoin: 'round' }))
     }
 
     function SearchIcon() {
@@ -1268,6 +1284,13 @@ window.__ModuleLoader__.load({
         },
       },
         h('span', { className: 'tape', 'aria-hidden': true }),
+        h('button', {
+          type: 'button',
+          className: 'todo-collapse',
+          title: t('collapse'),
+          'aria-label': t('collapse'),
+          onClick: collapse,
+        }, h(CollapseIcon)),
         textMode === 'title'
           ? h('input', {
             ref: titleRef,
