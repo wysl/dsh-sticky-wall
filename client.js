@@ -2,8 +2,8 @@
 //
 // 四处贡献，共用同一个数据源：
 //   1. conversation.session.header.utilities：会话标题栏右上图标排里的入口按钮。
-//   2. sidebar.footer.action：左侧栏底部图标排里的入口按钮。
-//      两个按钮都点开右侧栏的便签墙标签（sidebar.right.pane.tab），不占用主对话区。
+//   2. sidebarRightTabs 的 guide：右栏「开始」引导列表里的一张便签墙卡片。
+//      两者都点开右侧栏的便签墙标签（sidebar.right.pane.tab），不占用主对话区。
 //   3. sidebar.right.pane.tab（key = todo-wall）：右栏里的便签墙面板。
 //   4. settings.general.item：设置 → 通用里的「允许 LLM 读取和改写任务」开关。
 //
@@ -40,6 +40,7 @@ window.__ModuleLoader__.load({
     const DICT = {
       zh: {
         nav: '便签墙',
+        guideDesc: '自由摆放的暖色便签 TODO 墙，点开在右栏查看与编辑。',
         title: '便签墙',
         subtitle: '一张一张贴上去。状态只是便签里的一个字段。',
         newNote: '新便签',
@@ -136,6 +137,7 @@ window.__ModuleLoader__.load({
       },
       en: {
         nav: 'Sticky wall',
+        guideDesc: 'A warm sticky-note TODO wall you can arrange freely; opens in the right sidebar.',
         title: 'Sticky wall',
         subtitle: 'Pinned one by one. Status is just a field on the note.',
         newNote: 'New note',
@@ -417,11 +419,11 @@ window.__ModuleLoader__.load({
       /* ---------------- 侧栏图标 / 计数 ---------------- */
       .todo-pending{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;font-variant-numeric:tabular-nums;padding:0 2px}
       .todo-pending-dot{display:block;width:6px;height:6px;border-radius:50%;background:var(--dsw-alias-state-business-primary)}
-      /* 右上 / 左下两个入口按钮：贴合宿主图标排的尺寸与配色 */
-      .todo-headbtn,.todo-footerbtn{position:relative;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:none;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;flex:none}
-      .todo-headbtn:hover,.todo-footerbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-      .todo-headbtn:focus-visible,.todo-footerbtn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}
-      .todo-headbtn .todo-pending-dot,.todo-footerbtn .todo-pending-dot{position:absolute;top:3px;right:3px}
+      /* 右上入口按钮：贴合宿主图标排的尺寸与配色 */
+      .todo-headbtn{position:relative;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;border:none;border-radius:var(--dsw-radius-sm);background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer;flex:none}
+      .todo-headbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+      .todo-headbtn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}
+      .todo-headbtn .todo-pending-dot{position:absolute;top:3px;right:3px}
       /* 右栏标签体：撑满右栏面板高度 */
       .todo-pane{height:100%;min-height:0;display:flex;flex-direction:column}
 
@@ -1640,18 +1642,6 @@ window.__ModuleLoader__.load({
       }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false }))
     }
 
-    /** 左侧栏底部图标排里的入口：点开右栏便签墙。 */
-    function FooterToggle(props) {
-      const t = props.t || translator
-      return h('button', {
-        type: 'button',
-        className: 'todo-footerbtn',
-        title: t('nav'),
-        'aria-label': t('nav'),
-        onClick: () => { if (typeof props.open === 'function') props.open() },
-      }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false }))
-    }
-
     /** 右栏标签体：便签墙撑满右栏面板。 */
     function PaneBody() {
       return h('div', { className: 'todo-pane' }, h(WallPanel))
@@ -1747,7 +1737,7 @@ window.__ModuleLoader__.load({
       const slots = ctx.slots
       if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return
 
-      // 两个入口按钮：右上会话标题栏图标排、左下侧栏底部图标排。
+      // 入口按钮：右上会话标题栏图标排。
       slots.inject('conversation.session.header.utilities', () => slots.register({
         name: 'conversation.session.header.utilities',
         id: PANEL_ID,
@@ -1755,13 +1745,6 @@ window.__ModuleLoader__.load({
         locale: NS,
         inject: (sessionId) => ({ sid: sessionId, t, open: openRight }),
       }, HeaderToggle))
-
-      slots.inject('sidebar.footer.action', () => slots.register({
-        name: 'sidebar.footer.action',
-        id: PANEL_ID,
-        locale: NS,
-        inject: () => ({ t, open: openRight }),
-      }, FooterToggle))
 
       slots.inject('settings.general.item', () => slots.register({
         name: 'settings.general.item',
@@ -1786,6 +1769,14 @@ window.__ModuleLoader__.load({
             kind: PANEL_ID,
             title: () => t('nav'),
             keepMounted: true,
+            // 右栏「开始」引导列表里的一张卡片：点它打开便签墙标签。
+            guide: [{
+              id: 'open',
+              order: 35,
+              title: () => t('nav'),
+              description: () => t('guideDesc'),
+              icon: NoteIcon,
+            }],
           }), 'todo-wall: right tab type')
           scope.effect(() => slots.inject('sidebar.right.pane.tab', () => slots.register({
             name: 'sidebar.right.pane.tab',
