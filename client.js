@@ -42,6 +42,7 @@ window.__ModuleLoader__.load({
         nav: '便签墙',
         guideDesc: '自由摆放的暖色便签 TODO 墙，点开在右栏查看与编辑。',
         dblEdit: '双击编辑',
+        emptyBodyHint: '双击添加正文…',
         collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
@@ -142,6 +143,7 @@ window.__ModuleLoader__.load({
         nav: 'Sticky wall',
         guideDesc: 'A warm sticky-note TODO wall you can arrange freely; opens in the right sidebar.',
         dblEdit: 'Double-click to edit',
+        emptyBodyHint: 'Double-click to add body…',
         collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
@@ -327,7 +329,7 @@ window.__ModuleLoader__.load({
       .todo-tag[data-status="cancelled"] .dot{background:#a7a196}
       .todo-tag[data-status="cancelled"]{text-decoration:line-through}
       .todo-note-title{flex:none;margin:0 0 5px;font-size:15px;line-height:1.35;font-weight:650;letter-spacing:.1px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;color:var(--todo-ink)}
-      .todo-note-body{flex:1;min-height:0;margin:0;padding-right:2px;font-size:12.5px;line-height:1.6;color:var(--todo-ink-soft);overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;white-space:pre-wrap;scrollbar-width:thin;scrollbar-color:rgba(120,100,60,.28) transparent}
+      .todo-note-body{flex:1;min-height:0;margin:0;padding-right:2px;font-size:13px;line-height:1.6;color:var(--todo-ink-soft);overflow-y:auto;overflow-x:hidden;overflow-wrap:anywhere;white-space:pre-wrap;scrollbar-width:thin;scrollbar-color:rgba(120,100,60,.28) transparent}
       .todo-note-body::-webkit-scrollbar{width:5px}
       .todo-note-body::-webkit-scrollbar-thumb{background:rgba(120,100,60,.22);border-radius:3px}
       .todo-note-body::-webkit-scrollbar-thumb:hover{background:rgba(120,100,60,.4)}
@@ -393,7 +395,9 @@ window.__ModuleLoader__.load({
       .todo-editor-foot{display:flex;align-items:center;gap:6px;margin-top:1px}
       .todo-textview{cursor:pointer}
       .todo-view-title{margin:0 0 6px;padding-right:30px;font-size:16px;line-height:24px;font-weight:600;color:var(--todo-ink);word-break:break-word}
-      .todo-view-body{margin:0 0 10px;min-height:40px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word}
+      .todo-view-body{margin:0 0 10px;min-height:40px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;scrollbar-color:rgba(120,100,60,.28) transparent}
+      .todo-view-body.can-scroll{mask-image:linear-gradient(180deg,#000 calc(100% - 16px),transparent)}
+      .todo-empty-hint{color:var(--todo-ink-faint)}
       .todo-quick-hint{font-size:11px;line-height:16px;color:var(--todo-ink-faint)}
       .todo-editor-foot .spacer{flex:1}
       .todo-mini{height:28px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--todo-ink-soft);font:inherit;font-size:12px;cursor:pointer}
@@ -1028,8 +1032,8 @@ window.__ModuleLoader__.load({
           h('span', { className: 'todo-tag', 'data-status': task.status },
             h('i', { className: 'dot' }),
             t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1)))),
-        h('h2', { className: 'todo-note-title' }, task.title || t('titlePlaceholder')),
-        h('p', { ref: bodyRef, className: 'todo-note-body' }, task.note || ''),
+        h('h2', { className: 'todo-note-title', title: task.title || undefined }, task.title || t('titlePlaceholder')),
+        h('p', { ref: bodyRef, className: 'todo-note-body', title: task.note || undefined }, task.note || ''),
         when ? h('div', { className: 'todo-note-when' + (timeInvalid(task) ? ' warn' : '') },
           (timeInvalid(task) ? t('timeInvalidShort') + '：' : '') + when) : null)
     }
@@ -1054,6 +1058,7 @@ window.__ModuleLoader__.load({
       const cardRef = React.useRef(null)
       const titleRef = React.useRef(null)
       const bodyRef = React.useRef(null)
+      const viewBodyRef = React.useRef(null)
       const endRef = React.useRef(null)
       const draftRef = React.useRef(null)
       draftRef.current = { mode: textMode, title, body }
@@ -1109,6 +1114,20 @@ window.__ModuleLoader__.load({
         window.addEventListener('resize', measure)
         return () => window.removeEventListener('resize', measure)
       }, [])
+
+      // 查看态正文溢出时底部淡出，提示还有内容可滚。
+      React.useEffect(() => {
+        const body = viewBodyRef.current
+        if (!body) return undefined
+        const sync = () => {
+          const overflowing = body.scrollHeight > body.clientHeight + 2
+          const atEnd = body.scrollTop + body.clientHeight >= body.scrollHeight - 2
+          body.classList.toggle('can-scroll', overflowing && !atEnd)
+        }
+        body.addEventListener('scroll', sync, { passive: true })
+        sync()
+        return () => body.removeEventListener('scroll', sync)
+      }, [task.note, textMode])
 
       function clampX(x) {
         const w = cardRef.current ? cardRef.current.offsetWidth : 340
@@ -1348,6 +1367,7 @@ window.__ModuleLoader__.load({
             },
           })
           : h('p', {
+            ref: viewBodyRef,
             className: 'todo-textview todo-view-body',
             title: t('dblEdit'),
             onDoubleClick: () => {
@@ -1355,7 +1375,7 @@ window.__ModuleLoader__.load({
               setBody(task.note || '')
               setTextMode('note')
             },
-          }, task.note || ''),
+          }, task.note ? task.note : h('span', { className: 'todo-empty-hint' }, t('emptyBodyHint'))),
         h('div', { className: 'todo-editor-row' },
           h('span', { className: 'label' }, t('paperColor')),
           h('div', { className: 'todo-palette', role: 'group', 'aria-label': t('paperColor') },
