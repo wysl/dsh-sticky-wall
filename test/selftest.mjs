@@ -99,7 +99,7 @@ const { apply } = await import('../index.js')
 apply(makeContext(), {})
 check('默认配置下不注册任何工具', registered.length === 0, `registered=${registered.length}`)
 check('默认设置落盘为 llmTools=false', JSON.parse(readFileSync(join(HOME, 'dsh-todo', 'config.json'), 'utf8')).llmTools === false)
-check('路由已注册且要求登录', routes.length === 6 && routes.every((route) => route.auth === 'required'), `routes=${routes.length}`)
+check('路由已注册且要求登录', routes.length === 7 && routes.every((route) => route.auth === 'required'), `routes=${routes.length}`)
 
 // ---------------------------------------------------------------- 普通便签
 
@@ -141,6 +141,11 @@ const missingUpdate = await callRoute('/tasks/update', 'POST', { id: 'todo_nope'
 check('改不存在的便签返回 404 与 NOT_FOUND',
   missingUpdate.status === 404 && missingUpdate.body?.code === 'NOT_FOUND',
   JSON.stringify(missingUpdate.body))
+
+const openMissing = await callRoute('/open', 'POST', { path: join(HOME, 'definitely-not-here.md') })
+check('打开不存在的附件返回 404 而不启动进程',
+  openMissing.status === 404 && openMissing.body?.code === 'NOT_FOUND',
+  JSON.stringify(openMissing.body))
 
 const inverted = await callRoute('/tasks/update', 'POST', {
   id: rich.id,

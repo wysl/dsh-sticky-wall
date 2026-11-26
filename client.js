@@ -43,6 +43,7 @@ window.__ModuleLoader__.load({
         guideDesc: '自由摆放的暖色便签 TODO 墙，点开在右栏查看与编辑。',
         dblEdit: '双击编辑',
         emptyBodyHint: '双击添加正文…',
+        openAttachment: '用系统默认程序打开',
         collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
@@ -144,6 +145,7 @@ window.__ModuleLoader__.load({
         guideDesc: 'A warm sticky-note TODO wall you can arrange freely; opens in the right sidebar.',
         dblEdit: 'Double-click to edit',
         emptyBodyHint: 'Double-click to add body…',
+        openAttachment: 'Open with system default',
         collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
@@ -259,7 +261,7 @@ window.__ModuleLoader__.load({
         --todo-paper-line-strong:rgba(120,100,60,.32);
         box-sizing:border-box;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;
         overflow:hidden;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);
-        font-size:14px;line-height:1.6;
+        font-size:14px;line-height:1.6;container-type:inline-size;
       }
       .todo-topbar{
         position:relative;z-index:30;flex:none;display:flex;flex-wrap:wrap;align-items:center;
@@ -387,6 +389,9 @@ window.__ModuleLoader__.load({
       .todo-details[open] summary{margin-bottom:7px}
       .todo-attach-list{display:flex;flex-direction:column;gap:4px;margin:0 0 6px;padding:0;list-style:none}
       .todo-attach{display:flex;align-items:center;gap:7px;min-width:0;padding:5px 7px;border:1px solid rgba(120,100,60,.2);border-radius:7px;background:rgba(255,255,255,.45);font-size:11.5px;line-height:16px}
+      .todo-attach.openable{cursor:pointer}
+      .todo-attach.openable:hover{background:rgba(120,100,60,.12)}
+      .todo-attach.openable:focus-visible{outline:2px solid var(--todo-ink-soft);outline-offset:1px}
       .todo-attach-name{flex:none;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
       .todo-attach-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--todo-ink-faint)}
       .todo-attach-warn{flex:none;color:var(--todo-danger)}
@@ -398,6 +403,11 @@ window.__ModuleLoader__.load({
       .todo-view-body{margin:0 0 10px;min-height:40px;max-height:160px;overflow:auto;font-size:13px;line-height:20px;color:var(--todo-ink-soft);white-space:pre-wrap;word-break:break-word;scrollbar-width:thin;scrollbar-color:rgba(120,100,60,.28) transparent}
       .todo-view-body.can-scroll{mask-image:linear-gradient(180deg,#000 calc(100% - 16px),transparent)}
       .todo-empty-hint{color:var(--todo-ink-faint)}
+      .todo-md-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em;background:rgba(120,100,60,.12);border-radius:4px;padding:0 4px}
+      .todo-md-pre{margin:4px 0;padding:8px 10px;background:rgba(120,100,60,.1);border:1px solid rgba(120,100,60,.18);border-radius:7px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.5;white-space:pre}
+      .todo-md-link{color:#2f5d4a;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+      .todo-md-link:hover{color:#26503f}
+      .todo-hl{background:rgba(255,205,66,.5);color:inherit;border-radius:2px;padding:0 1px}
       .todo-quick-hint{font-size:11px;line-height:16px;color:var(--todo-ink-faint)}
       .todo-editor-foot .spacer{flex:1}
       .todo-mini{height:28px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--todo-ink-soft);font:inherit;font-size:12px;cursor:pointer}
@@ -463,6 +473,20 @@ window.__ModuleLoader__.load({
       @media (max-width:900px){.todo-search{width:150px}.todo-brand .sub{display:none}}
       @media (max-width:720px){.todo-topbar{padding:10px 14px}.todo-statusbar{padding:8px 14px}}
       @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-note.removing,.todo-note.pulse .todo-tag .dot,.todo-editor .title,.todo-editor textarea,.todo-textview,.todo-switch,.todo-switch .knob,.todo-search{transition:none;animation:none}.todo-note:hover{translate:none}}
+      /* 窄右栏响应式：chips 独立成行横滑，搜索与按钮收紧 */
+      @container (max-width:560px){
+        .todo-topbar{padding:10px 12px;gap:6px 8px}
+        .todo-search{width:140px}
+        .todo-tools{flex-wrap:nowrap}
+        .todo-chips{order:3;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+        .todo-chips::-webkit-scrollbar{display:none}
+      }
+      @container (max-width:400px){
+        .todo-search{width:96px}
+        .todo-brand h1{font-size:14px}
+        .todo-btn{padding:0 8px}
+        .todo-status-hint{display:none}
+      }
     `
 
     /** 入口按钮先于墙面板挂载，CSS 必须全局注入一次，不能只靠面板组件内的 <style>。 */
@@ -532,6 +556,85 @@ window.__ModuleLoader__.load({
       const date = new Date(value)
       if (Number.isNaN(date.getTime())) return value
       return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+    }
+
+    // ---------------------------------------------------------------- 轻量 Markdown 与搜索高亮
+
+    /** 把搜索匹配词包成 <mark>；无匹配时原样返回文本。 */
+    function highlightNodes(text, query, keyBase) {
+      const needle = (query || '').trim().toLowerCase()
+      if (!needle) return [text]
+      const lower = text.toLowerCase()
+      const nodes = []
+      let i = 0
+      let k = 0
+      for (;;) {
+        const at = lower.indexOf(needle, i)
+        if (at < 0) {
+          nodes.push(text.slice(i))
+          break
+        }
+        if (at > i) nodes.push(text.slice(i, at))
+        nodes.push(h('mark', { key: `${keyBase}-h${k++}`, className: 'todo-hl' }, text.slice(at, at + needle.length)))
+        i = at + needle.length
+      }
+      return nodes
+    }
+
+    const MD_TOKEN = /(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(__[^_\n]+__)|(\*[^*\n]+\*)|(_[^_\n]+_)|(\[[^\]\n]+\]\((https?:\/\/[^)\s]+)\))|(https?:\/\/[^\s<>()]+)/g
+
+    function mdLink(key, href, label) {
+      return h('a', {
+        key,
+        className: 'todo-md-link',
+        href,
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        onClick: (event) => event.stopPropagation(),
+        onPointerDown: (event) => event.stopPropagation(),
+      }, label)
+    }
+
+    /** 行内轻量 Markdown：code / 加粗 / 斜体 / 链接 / 裸 URL；其余文本走搜索高亮。 */
+    function mdInline(text, query, keyBase) {
+      const nodes = []
+      let last = 0
+      let k = 0
+      MD_TOKEN.lastIndex = 0
+      let m
+      while ((m = MD_TOKEN.exec(text)) !== null) {
+        if (m.index > last) nodes.push(...highlightNodes(text.slice(last, m.index), query, `${keyBase}-p${k}`))
+        const key = `${keyBase}-m${k++}`
+        if (m[1]) nodes.push(h('code', { key, className: 'todo-md-code' }, m[1].slice(1, -1)))
+        else if (m[2]) nodes.push(h('strong', { key }, m[2].slice(2, -2)))
+        else if (m[3]) nodes.push(h('strong', { key }, m[3].slice(2, -2)))
+        else if (m[4]) nodes.push(h('em', { key }, m[4].slice(1, -1)))
+        else if (m[5]) nodes.push(h('em', { key }, m[5].slice(1, -1)))
+        else if (m[6]) nodes.push(mdLink(key, m[7], m[6].slice(1, m[6].indexOf(']('))))
+        else if (m[8]) nodes.push(mdLink(key, m[8], m[8]))
+        last = m.index + m[0].length
+      }
+      if (last < text.length) nodes.push(...highlightNodes(text.slice(last), query, `${keyBase}-tail`))
+      return nodes
+    }
+
+    /** 正文渲染： fenced code block 成 <pre>，其余行内 Markdown；保留换行（容器 pre-wrap）。 */
+    function renderMarkdown(text, query, keyBase) {
+      const source = text || ''
+      if (!source) return []
+      const nodes = []
+      const fence = /```[^\n]*\n?([\s\S]*?)```/g
+      let last = 0
+      let k = 0
+      let m
+      while ((m = fence.exec(source)) !== null) {
+        if (m.index > last) nodes.push(...mdInline(source.slice(last, m.index), query, `${keyBase}-s${k}`))
+        nodes.push(h('pre', { key: `${keyBase}-pre${k}`, className: 'todo-md-pre' }, h('code', null, m[1].replace(/\n$/, ''))))
+        k += 1
+        last = m.index + m[0].length
+      }
+      if (last < source.length) nodes.push(...mdInline(source.slice(last), query, `${keyBase}-tail`))
+      return nodes
     }
 
     function timeText(task, t) {
@@ -761,6 +864,9 @@ window.__ModuleLoader__.load({
           if (result.ok) emit({ config: { ...snapshot.config, ...result.data }, error: null })
           return result
         },
+        async open(path) {
+          return post('/open', { path })
+        },
       }
     }
 
@@ -908,7 +1014,7 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 便签
 
-    function NoteCard({ task, t, canvasWidth, draggingEnabled, suppressed, removing, onOpen, onMove, onDragY, onDragStart, onDragEnd }) {
+    function NoteCard({ task, t, canvasWidth, draggingEnabled, suppressed, removing, query, onOpen, onMove, onDragY, onDragStart, onDragEnd }) {
       const nodeRef = React.useRef(null)
       const dragRef = React.useRef(null)
       const suppressClickRef = React.useRef(0)
@@ -1032,15 +1138,15 @@ window.__ModuleLoader__.load({
           h('span', { className: 'todo-tag', 'data-status': task.status },
             h('i', { className: 'dot' }),
             t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1)))),
-        h('h2', { className: 'todo-note-title', title: task.title || undefined }, task.title || t('titlePlaceholder')),
-        h('p', { ref: bodyRef, className: 'todo-note-body', title: task.note || undefined }, task.note || ''),
+        h('h2', { className: 'todo-note-title', title: task.title || undefined }, highlightNodes(task.title || t('titlePlaceholder'), query, `nt-${task.id}`)),
+        h('div', { ref: bodyRef, className: 'todo-note-body', title: task.note || undefined }, renderMarkdown(task.note, query, `nb-${task.id}`)),
         when ? h('div', { className: 'todo-note-when' + (timeInvalid(task) ? ' warn' : '') },
           (timeInvalid(task) ? t('timeInvalidShort') + '：' : '') + when) : null)
     }
 
     // ---------------------------------------------------------------- 原地编辑
 
-    function NoteEditor({ task, t, canvasWidth = 900, store, closing, onClose, onExited, onRemove, onChanged }) {
+    function NoteEditor({ task, t, canvasWidth = 900, store, closing, query, onClose, onExited, onRemove, onChanged }) {
       const snapshotState = useSnapshot(store)
       // null = 查看/快捷改态；'title' / 'note' = 该文本字段进入编辑。
       const [textMode, setTextMode] = React.useState(null)
@@ -1287,14 +1393,31 @@ window.__ModuleLoader__.load({
       }
 
       const attachments = task.attachments || []
-      const attachmentsRows = attachments.map((entry) => h('li', { key: entry.id, className: 'todo-attach' },
+      async function openAttachment(entry) {
+        const result = await store.open(entry.path)
+        if (!result.ok) setError(requestErrorText(t, result))
+      }
+      const attachmentsRows = attachments.map((entry) => h('li', {
+        key: entry.id,
+        className: 'todo-attach openable',
+        role: 'button',
+        tabIndex: 0,
+        title: t('openAttachment'),
+        onClick: () => { void openAttachment(entry) },
+        onKeyDown: (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            void openAttachment(entry)
+          }
+        },
+      },
         h('span', { className: 'todo-attach-name' }, entry.name || entry.path),
         h('span', { className: 'todo-attach-path' }, entry.path),
         entry.missing ? h('span', { className: 'todo-attach-warn' }, t('missingFile')) : null,
         h('button', {
           type: 'button',
           className: 'todo-attach-remove',
-          onClick: () => { void patch({ removeAttachments: [entry.id] }) },
+          onClick: (event) => { event.stopPropagation(); void patch({ removeAttachments: [entry.id] }) },
         }, t('remove'))))
 
       const start = toLocalInput(task.planStartAt)
@@ -1349,7 +1472,7 @@ window.__ModuleLoader__.load({
               setTitle(task.title)
               setTextMode('title')
             },
-          }, task.title || t('titlePlaceholder')),
+          }, highlightNodes(task.title || t('titlePlaceholder'), query, `et-${task.id}`)),
         textMode === 'note'
           ? h('textarea', {
             ref: bodyRef,
@@ -1366,7 +1489,7 @@ window.__ModuleLoader__.load({
               }
             },
           })
-          : h('p', {
+          : h('div', {
             ref: viewBodyRef,
             className: 'todo-textview todo-view-body',
             title: t('dblEdit'),
@@ -1375,7 +1498,7 @@ window.__ModuleLoader__.load({
               setBody(task.note || '')
               setTextMode('note')
             },
-          }, task.note ? task.note : h('span', { className: 'todo-empty-hint' }, t('emptyBodyHint'))),
+          }, task.note ? renderMarkdown(task.note, query, `eb-${task.id}`) : h('span', { className: 'todo-empty-hint' }, t('emptyBodyHint'))),
         h('div', { className: 'todo-editor-row' },
           h('span', { className: 'label' }, t('paperColor')),
           h('div', { className: 'todo-palette', role: 'group', 'aria-label': t('paperColor') },
@@ -1783,6 +1906,7 @@ window.__ModuleLoader__.load({
             draggingEnabled: editingId === null,
             suppressed: editingId === task.id,
             removing: removingIds.includes(task.id),
+            query,
             onOpen: () => { setClosing(false); setEditingId(task.id) },
             onMove: moveNote,
             onDragY: (y) => { pointerY.current = y },
@@ -1796,6 +1920,7 @@ window.__ModuleLoader__.load({
             canvasWidth,
             store,
             closing,
+            query,
             onClose: collapseEditor,
             onExited: finishClose,
             onRemove: removeNote,
@@ -1819,7 +1944,7 @@ window.__ModuleLoader__.load({
             : null))
 
       const statusbar = h('div', { className: 'todo-statusbar' },
-        h('span', null, t('wallHint')),
+        h('span', { className: 'todo-status-hint' }, t('wallHint')),
         h('span', { className: 'sep', 'aria-hidden': true }),
         h('span', { className: 'state' },
           `${tasks.length} · ${t('statusPlanned')} ${counts.planned} · ${t('statusActive')} ${counts.active} · ${t('statusDone')} ${counts.done} · ${t('statusCancelled')} ${counts.cancelled}`),

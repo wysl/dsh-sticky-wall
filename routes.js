@@ -104,6 +104,7 @@ export function registerRoutes(webServer, service) {
     route('/tasks/update', ['POST'], ({ body }) => service.update(body))
     route('/tasks/arrange', ['POST'], ({ body }) => service.arrange(body))
     route('/tasks/delete', ['POST'], ({ body }) => service.remove(body))
+    route('/open', ['POST'], ({ body }) => service.open(body))
   } catch (error) {
     // 部分注册失败不能泄漏已经注册上的路由。
     for (const dispose of disposers.splice(0)) {

@@ -10,6 +10,7 @@
 // 全部可选字段留空时，任务就是一张普通便签 —— 创建路径不做任何前置校验。
 
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { basename, isAbsolute, join } from 'node:path'
 import { homedir } from 'node:os'
 import { randomUUID } from 'node:crypto'
@@ -631,6 +632,26 @@ function createOperations(ctx, store, configRef, syncTools) {
       store.persist()
       return { parent: clone(parentView), created: created.map(clone), warning: timeWarning(parentView) }
     },
+
+    /** 用系统默认程序打开附件（文件）或默认浏览器打开链接。 */
+    open(body = {}) {
+      if (!isPlainObject(body)) throw userError('open payload must be an object')
+      const path = textField(body.path, 'path', 1000, true)
+      const isLink = /^https?:\/\//i.test(path)
+      if (!isLink && !existsSync(path)) throw userError(`attachment not found: ${path}`, 404, 'NOT_FOUND')
+      try {
+        const platform = process.platform
+        const child = platform === 'win32'
+          ? spawn('cmd.exe', ['/c', 'start', '', path], { detached: true, stdio: 'ignore', windowsHide: true })
+          : platform === 'darwin'
+            ? spawn('open', [path], { detached: true, stdio: 'ignore' })
+            : spawn('xdg-open', [path], { detached: true, stdio: 'ignore' })
+        child.unref()
+      } catch (error) {
+        throw userError(`cannot open attachment: ${String((error && error.message) || error)}`, 500, 'OPEN_FAILED')
+      }
+      return { opened: true, path }
+    },
   }
 
   // 每次读写前先看 tasks.json 是否被外部改过（手改、别的进程写入），
@@ -1016,6 +1037,7 @@ export function apply(ctx, rawConfig = {}) {
         update: (body) => operations.update(body),
         arrange: (body) => operations.arrange(body),
         remove: (body) => operations.remove(body),
+        open: (body) => operations.open(body),
       })
       webCtx.effect(() => disposeRoutes, 'dsh-todo: panel routes')
       log(ctx, 'panel routes registered')

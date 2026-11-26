@@ -2,6 +2,11 @@
 
 ## 0.1.4
 
+- 正文轻量 Markdown 渲染：行内 code / 加粗 / 斜体 / `[文本](url)` 与裸 URL 可点（新标签打开），``` fenced code block 成等宽块；查看态与小卡均生效，编辑态仍为纯文本。
+- 搜索匹配词在标题与正文中高亮（`<mark>`）。
+- 窄右栏顶栏响应式（container query）：≤560px 时状态 chips 独立成行横滑、搜索收紧；≤400px 进一步收紧并隐藏底部操作提示。
+- 附件行可点击：经主机 `/dsh-todo/api/open` 用系统默认程序打开文件、默认浏览器打开链接（Windows `start` / macOS `open` / Linux `xdg-open`）；文件不存在返回 404 不启动进程。
+
 - 新增 LLM 工具 `todo_create`：模型可以直接新建便签（只有标题必填，其余可选），不再需要绕道手写存储文件。按需加载入口现在加载四个工具：`todo_list` / `todo_create` / `todo_update` / `todo_split`。
 - 存储热重载：每次面板 / 工具读写前检查 `tasks.json` 的 mtime+size，外部改动（手改、别的进程写入）自动重载，不再需要重启 DSH；回写不会用内存旧数据盖掉外部改动。
 - 修复非法 JSON 的 `tasks.json` 被静默清空的问题：现在与结构错误一样改名留档（`tasks.json.corrupt-<时间戳>.json`）后再从空清单开始；坏掉的 `config.json` 仍回落默认值。
