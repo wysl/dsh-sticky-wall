@@ -372,7 +372,7 @@ function buildTask(input = {}, overrides = {}) {
   }
 }
 
-function createOperations(ctx, store, configRef, syncTools) {
+function createOperations(ctx, store, configRef, syncTools, wdRef) {
   function resolveWorkspace(workspaceId) {
     if (!workspaceId) return null
     const found = workspaceOptions(ctx).find((item) => item.id === workspaceId)
@@ -666,13 +666,45 @@ function createOperations(ctx, store, configRef, syncTools) {
 
   /** 工具结果文本：只读列表，方便模型直接引用 id。 */
   function renderList(result) {
+    const workspaces = workspaceOptions(ctx)
+    const wsLine = workspaces.length > 0
+      ? `\nWorkspaces: ${workspaces.map((item) => `${item.id}=${item.title}`).join(', ')}`
+      : ''
     if (result.tasks.length === 0) {
-      return 'No tasks matched. The sticky wall has no pending notes for this filter.'
+      return `No tasks matched. The sticky wall has no pending notes for this filter.${wsLine}`
     }
-    return `${result.tasks.length} task(s) on the sticky wall:\n${result.tasks.map(describe).join('\n')}`
+    return `${result.tasks.length} task(s) on the sticky wall:\n${result.tasks.map(describe).join('\n')}${wsLine}`
   }
 
-  return { operations, renderList }
+  /** 省略 workspaceId 时，按当前会话 cwd 匹配注册工作区（最长前缀），自动关联。 */
+  async function defaultWorkspaceId(exec) {
+    const wd = wdRef && wdRef.current
+    if (!wd || typeof wd.ensure !== 'function' || !exec || !exec.agent) return null
+    try {
+      const cwd = await wd.ensure(exec.agent, exec.signal)
+      if (!cwd) return null
+      const norm = (value) => String(value).replace(/[\\/]+$/, '').toLowerCase()
+      const target = norm(cwd)
+      let best = null
+      for (const option of workspaceOptions(ctx)) {
+        if (!option.path) continue
+        const base = norm(option.path)
+        if (target === base || target.startsWith(`${base}/`)) {
+          if (!best || base.length > norm(best.path).length) best = option
+        }
+      }
+      return best ? best.id : null
+    } catch {
+      return null
+    }
+  }
+
+  function workspaceTitle(id) {
+    const found = workspaceOptions(ctx).find((item) => item.id === id)
+    return found ? found.title : id
+  }
+
+  return { operations, renderList, defaultWorkspaceId, workspaceTitle }
 }
 
 function toolOutput() {
@@ -691,7 +723,7 @@ function toolOutput() {
  * 四个 LLM 工具。它们只在设置 llmTools === true 时注册。
  * 参数与面板操作完全同义：面板与工具调用同一套 operations。
  */
-function createTools(operations, renderList) {
+function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle) {
   return [
     {
       name: 'todo_list',
@@ -734,7 +766,9 @@ function createTools(operations, renderList) {
       name: 'todo_create',
       description: 'Create a new note on the user\'s sticky-note wall (todo list). Only title is required; '
         + 'workspace, planned start / expected end time and document attachments are optional — leave them out '
-        + 'and the note is a plain sticky note. Status defaults to planned. The note is placed on the wall '
+        + 'and the note is a plain sticky note. When workspaceId is omitted the note is linked automatically to '
+        + 'the current session\'s workspace (matched by working directory against registered workspaces). '
+        + 'Status defaults to planned. The note is placed on the wall '
         + 'automatically; position and paper color are managed by the panel. Use this instead of editing '
         + 'the storage file directly.',
       parameters: {
@@ -768,17 +802,22 @@ function createTools(operations, renderList) {
         },
       },
       output: toolOutput(),
-      async execute(args) {
+      async execute(args, exec) {
+        let workspaceId = args.workspaceId
+        if (workspaceId === undefined || workspaceId === null || workspaceId === '') {
+          workspaceId = (await defaultWorkspaceId(exec)) || undefined
+        }
         const result = operations.create({
           title: args.title,
           note: args.note,
           status: args.status,
-          workspaceId: args.workspaceId,
+          workspaceId,
           planStartAt: args.planStartAt,
           planEndAt: args.planEndAt,
           attachments: args.attachments,
         })
         const lines = [`Created [${result.task.id}] ${result.task.title} — ${result.task.status}`]
+        if (result.task.workspaceId) lines.push(`workspace ${workspaceTitle(result.task.workspaceId)}`)
         if (result.warning) lines.push(`warning: ${result.warning}`)
         return { text: lines.join('\n') }
       },
@@ -1009,10 +1048,20 @@ export function apply(ctx, rawConfig = {}) {
     }
   })
 
-  const built = createOperations(ctx, store, configRef, syncTools)
+  const wdRef = { current: null }
+  if (typeof ctx.inject === 'function') {
+    ctx.inject(['workingDirectory'], (scope) => {
+      scope.effect(() => {
+        wdRef.current = scope.workingDirectory || null
+        return () => { wdRef.current = null }
+      }, 'dsh-todo: workingDirectory ref')
+    })
+  }
+
+  const built = createOperations(ctx, store, configRef, syncTools, wdRef)
   operations = built.operations
   renderList = built.renderList
-  tools = createTools(operations, renderList)
+  tools = createTools(operations, renderList, built.defaultWorkspaceId, built.workspaceTitle)
 
   ctx.effect(() => {
     syncTools(configRef.current.llmTools)

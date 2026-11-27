@@ -51,7 +51,17 @@ function makeContext() {
     on() {
       return () => {}
     },
-    inject(names, callback) { callback(webCtx) },
+    inject(names, callback) {
+      if (names.indexOf('webServer') >= 0) return callback(webCtx)
+      const scope = {
+        effect(fn) {
+          const disposer = fn()
+          return () => { if (typeof disposer === 'function') disposer() }
+        },
+      }
+      if (names.indexOf('workingDirectory') >= 0) scope.workingDirectory = { ensure: async () => 'E:\\dsh' }
+      callback(scope)
+    },
     get(name) {
       if (name === 'workspaceRegistry') {
         return { list: () => [{ id: 'ws-research', title: '研发', path: 'E:\\dsh' }] }
@@ -241,6 +251,12 @@ check('todo_create 只给标题 = 普通便签且已落盘',
   JSON.stringify(toolNote))
 const createNoTitle = await createTool.execute({ note: '没有标题' }, {}).then(() => null, (error) => error)
 check('todo_create 缺标题被拒绝', createNoTitle && /title is required/.test(createNoTitle.message), String(createNoTitle))
+
+const autoWs = await createTool.execute({ title: '自动关联工作区' }, { agent: { id: 'agent-selftest' } })
+check('todo_create 省略 workspaceId 自动关联当前会话工作区', /workspace 研发/.test(autoWs.text), autoWs.text)
+const autoWsState = await callRoute('/state', 'GET')
+const autoWsTask = autoWsState.body.data.tasks.find((task) => task.title === '自动关联工作区')
+check('自动关联落盘为 ws-research', autoWsTask && autoWsTask.workspaceId === 'ws-research', JSON.stringify(autoWsTask && autoWsTask.workspaceId))
 
 const disabled = await callRoute('/config', 'POST', { llmTools: false })
 check('关闭后入口与已加载工具都撤销',

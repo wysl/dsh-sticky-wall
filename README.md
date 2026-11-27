@@ -100,7 +100,7 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 | --- | --- | --- |
 | `todo_load_tools` | 按需加载入口：把下面四个工具加载到当前 agent | 无 |
 | `todo_list` | 查看工具区（便签墙）内待完成的任务：默认只返回「规划中 + 进行中」，只读 | `status`（`pending`/`planned`/`active`/`done`/`cancelled`/`all`）、`workspace`（工作区 id 或标题片段）、`query`、`limit`（1–50，默认 20） |
-| `todo_create` | 新建一张便签：只有标题必填，其余可选；默认「规划中」，自动落网格位。不要直接改存储文件 | `title`（必填）、`note`、`status`、`workspaceId`、`planStartAt`、`planEndAt`、`attachments` |
+| `todo_create` | 新建一张便签：只有标题必填，其余可选；**省略工作区时自动关联当前会话工作区**；默认「规划中」，自动落网格位。不要直接改存储文件 | `title`（必填）、`note`、`status`、`workspaceId`（省略=自动关联）、`planStartAt`、`planEndAt`、`attachments` |
 | `todo_update` | 修改一张便签：标题、正文、四状态、工作区、起止时间、附件增删；`clear` 可清空可选字段 | `id`（必填）、`title`、`note`、`status`、`workspaceId`、`planStartAt`、`planEndAt`、`clear`、`addAttachments`、`removeAttachments` |
 | `todo_split` | 拆解：把一张便签拆成多张子便签，保留父子关系，子便签默认「规划中」并继承父便签的工作区 | `id`（必填）、`subtasks`（1–12 个标题）、`note`、`status`（`planned`/`active`）、`markParentActive`、`inheritWorkspace` |
 
