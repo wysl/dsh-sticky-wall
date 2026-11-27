@@ -76,6 +76,9 @@ window.__ModuleLoader__.load({
         ctxCollapse: '收起',
         bubblePending: '{n} 个待完成',
         bubbleView: '查看',
+        dueSoon: '{n} 个便签 1 小时内到期',
+        dueOverdue: '{n} 个便签已到期',
+        dueBoth: '{o} 个已到期 · {s} 个 1 小时内到期',
         collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
@@ -208,6 +211,9 @@ window.__ModuleLoader__.load({
         ctxCollapse: 'Collapse',
         bubblePending: '{n} pending',
         bubbleView: 'View',
+        dueSoon: '{n} note(s) due within 1h',
+        dueOverdue: '{n} note(s) overdue',
+        dueBoth: '{o} overdue · {s} due within 1h',
         collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
@@ -540,6 +546,8 @@ window.__ModuleLoader__.load({
       .todo-bubble{position:fixed;z-index:10002;transform:translateX(-100%);display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);box-shadow:var(--dsw-elevation-prominent);font-size:12px;line-height:18px;white-space:nowrap;animation:todo-fade .18s ease}
       .todo-bubble-arrow{position:absolute;top:-5px;right:12px;width:8px;height:8px;transform:rotate(45deg);background:var(--dsw-alias-bg-layer-2);border-left:1px solid var(--dsw-alias-border-l2);border-top:1px solid var(--dsw-alias-border-l2)}
       .todo-bubble-view{border:0;background:none;padding:0;color:var(--dsw-alias-state-business-primary);font:inherit;font-size:12px;line-height:18px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+      .todo-bubble.overdue{border-color:var(--dsw-alias-state-error-primary)}
+      .todo-bubble.overdue .todo-bubble-arrow{border-left-color:var(--dsw-alias-state-error-primary);border-top-color:var(--dsw-alias-state-error-primary)}
       /* 右栏标签体：撑满右栏面板高度 */
       .todo-pane{height:100%;min-height:0;display:flex;flex-direction:column}
 
@@ -998,6 +1006,8 @@ window.__ModuleLoader__.load({
     const WALL_STORE = createWallStore()
     // 每次页面加载（UI 启动）只弹一次启动气泡；模块级标记，刷新即重置。
     let bootBubbleDone = false
+    // 到期提醒去重：key → 上次提醒时间；同一卡同一阈值每 1h 才再提醒。
+    const dueReminded = new Map()
 
     // ---------------------------------------------------------------- 图标
 
@@ -2395,12 +2405,25 @@ window.__ModuleLoader__.load({
       const label = pending > 0 ? `${t('nav')} · ${t('pendingCount', { n: pending })}` : t('nav')
       const buttonRef = React.useRef(null)
       const bubbleRef = React.useRef(null)
+      const hideTimerRef = React.useRef(null)
       const [bubble, setBubble] = React.useState(null)
 
-      // 启动 2s 后弹一次悬浮待办框：锚在按钮下方、标签条右侧空白带内，不遮对话区。
+      function showBubble(payload, ms) {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+        setBubble(payload)
+        hideTimerRef.current = setTimeout(() => setBubble(null), ms)
+      }
+      function anchor() {
+        const node = buttonRef.current
+        if (!node) return null
+        const rect = node.getBoundingClientRect()
+        if (rect.width === 0) return null
+        return { left: Math.max(rect.right, 240), top: rect.bottom + 4 }
+      }
+
+      // 启动 2s 后弹一次悬浮待办框：锚按钮下方、标签条右侧空白带，不遮对话区。
       React.useEffect(() => {
         let timer = null
-        let hide = null
         let tries = 0
         if (bootBubbleDone) return undefined
         const attempt = () => {
@@ -2410,20 +2433,53 @@ window.__ModuleLoader__.load({
             if (tries < 4) timer = setTimeout(attempt, 1200)
             return
           }
-          const node = buttonRef.current
-          if (!node) return
-          const rect = node.getBoundingClientRect()
-          if (rect.width === 0) return
+          const pos = anchor()
+          if (!pos) return
           bootBubbleDone = true
-          setBubble({
-            left: Math.max(rect.right, 240),
-            top: rect.bottom + 4,
-            n: snap.pending,
-          })
-          hide = setTimeout(() => setBubble(null), 6000)
+          showBubble({ kind: 'boot', n: snap.pending, ...pos }, 6000)
         }
         timer = setTimeout(attempt, 2000)
-        return () => { clearTimeout(timer); if (hide) clearTimeout(hide) }
+        return () => { clearTimeout(timer); if (hideTimerRef.current) clearTimeout(hideTimerRef.current) }
+      }, [])
+
+      // 到期提醒：只看待完成且设了 planEndAt 的卡；1h 内临近 / 已过期。
+      // 临近气泡持续 30min、已过期持续 10min；之后同一卡同一阈值每 1h 再提醒；5min 复检。
+      React.useEffect(() => {
+        let first = null
+        let interval = null
+        const check = () => {
+          const snap = WALL_STORE.getSnapshot()
+          if (snap.phase !== 'ready') return
+          if (bubbleRef.current) return // 不与启动气泡 / 已有提醒同屏
+          const now = Date.now()
+          let soon = 0
+          let overdue = 0
+          const keys = []
+          for (const task of snap.tasks) {
+            if (!task.planEndAt) continue
+            if (task.status !== 'planned' && task.status !== 'active') continue
+            const end = new Date(task.planEndAt).getTime()
+            if (Number.isNaN(end)) continue
+            const delta = end - now
+            if (delta <= 0) {
+              const key = `${task.id}:overdue`
+              const last = dueReminded.get(key)
+              if (last === undefined || now - last >= 3600000) { overdue += 1; keys.push(key) }
+            } else if (delta <= 3600000) {
+              const key = `${task.id}:soon`
+              const last = dueReminded.get(key)
+              if (last === undefined || now - last >= 3600000) { soon += 1; keys.push(key) }
+            }
+          }
+          if (soon === 0 && overdue === 0) return
+          const pos = anchor()
+          if (!pos) return
+          for (const key of keys) dueReminded.set(key, now)
+          showBubble({ kind: 'due', soon, overdue, ...pos }, overdue > 0 ? 600000 : 1800000)
+        }
+        first = setTimeout(check, 9000)
+        interval = setInterval(check, 300000)
+        return () => { clearTimeout(first); clearInterval(interval) }
       }, [])
 
       React.useEffect(() => {
@@ -2450,14 +2506,23 @@ window.__ModuleLoader__.load({
         if (typeof props.open === 'function') props.open(props.sid)
       }
 
+      const bubbleText = !bubble ? ''
+        : bubble.kind === 'due'
+          ? (bubble.overdue > 0 && bubble.soon > 0
+            ? t('dueBoth', { o: bubble.overdue, s: bubble.soon })
+            : bubble.overdue > 0
+              ? t('dueOverdue', { n: bubble.overdue })
+              : t('dueSoon', { n: bubble.soon }))
+          : t('bubblePending', { n: bubble.n })
+
       const bubbleNode = bubble ? h('div', {
         ref: bubbleRef,
-        className: 'todo-bubble',
+        className: 'todo-bubble' + (bubble.kind === 'due' && bubble.overdue > 0 ? ' overdue' : ''),
         role: 'status',
         style: { left: `${bubble.left}px`, top: `${bubble.top}px` },
       },
         h('span', { className: 'todo-bubble-arrow', 'aria-hidden': true }),
-        h('span', null, t('bubblePending', { n: bubble.n })),
+        h('span', null, bubbleText),
         h('button', { type: 'button', className: 'todo-bubble-view', onClick: open }, t('bubbleView'))) : null
 
       return h(React.Fragment, null,
