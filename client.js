@@ -32,8 +32,8 @@ window.__ModuleLoader__.load({
       lilac: '#e9e2f4',
     }
     const PAPER_ORDER = ['cream', 'lemon', 'mint', 'sky', 'rose', 'lilac']
-    const NOTE_W = 240
-    const NOTE_H = 200
+    const NOTE_W = 200
+    const NOTE_H = 300
     const GAP = 20
     const POLL_MS = 5000
     const ERROR_POLL_MS = 30000
