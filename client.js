@@ -674,6 +674,10 @@ window.__ModuleLoader__.load({
       .todo-viewtoggle{display:inline-flex;box-sizing:border-box;height:32px;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);overflow:hidden}
       .todo-viewtoggle button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:0 10px;height:100%;cursor:pointer}
       .todo-viewtoggle button[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);font-weight:600}
+      .todo-boxbtn{box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer;transition:background-color .12s}
+      .todo-boxbtn:hover{background:var(--dsw-alias-interactive-bg-hover)}
+      .todo-boxbtn[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-hover);font-weight:600}
+      .todo-boxbtn .n{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
       .todo-attach-thumb{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid rgba(120,100,60,.25);flex:none;cursor:zoom-in;background:rgba(255,255,255,.4)}
       .todo-preview-img{max-width:100%;max-height:60vh;object-fit:contain;border-radius:8px;display:block;margin:0 auto}
       .todo-preview-pre{margin:0;padding:10px 12px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto}
@@ -3017,12 +3021,12 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', 'aria-pressed': view === 'list' ? 'true' : 'false', onClick: () => setView('list') }, t('viewList'))),
           h('button', {
             type: 'button',
-            className: 'todo-btn ghost outline',
+            className: 'todo-boxbtn',
             'aria-pressed': showArchived ? 'true' : 'false',
             title: (showArchived ? t('archiveHide') : t('archiveShow')) + ` (${archivedCount})`,
             onClick: () => setShowArchived(!showArchived),
           }, t('archive'), h('span', { className: 'n' }, String(archivedCount))),
-          h('button', { type: 'button', className: 'todo-btn ghost outline', onClick: () => { void arrange() } }, t('arrange')),
+          h('button', { type: 'button', className: 'todo-boxbtn', onClick: () => { void arrange() } }, t('arrange')),
           h('button', {
             type: 'button',
             className: 'todo-btn ghost icon',
