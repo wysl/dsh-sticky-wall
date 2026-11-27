@@ -130,7 +130,7 @@ window.__ModuleLoader__.load({
         allWorkspaces: '全部工作区',
         unlinked: '不关联工作区',
         removedWorkspace: '工作区已移除',
-        wallHint: '拖动便签摆放 · 点击便签原地编辑 · Esc 取消',
+        wallHint: '双击空白新建 · 拖动摆放 · 点击原地编辑 · Esc 取消',
         wallEmpty: '墙上还没有便签',
         wallEmptyHint: '点右上角「新便签」贴一张',
         noMatch: '没有匹配的便签',
@@ -305,7 +305,7 @@ window.__ModuleLoader__.load({
         allWorkspaces: 'All workspaces',
         unlinked: 'No workspace',
         removedWorkspace: 'Workspace removed',
-        wallHint: 'Drag notes to place them · click a note to edit in place · Esc to cancel',
+        wallHint: 'Double-click blank to create · drag to place · click to edit in place · Esc to cancel',
         wallEmpty: 'The wall is empty',
         wallEmptyHint: 'Use “New note” to pin one',
         noMatch: 'No notes match',
@@ -425,7 +425,7 @@ window.__ModuleLoader__.load({
       .todo-search svg{flex:none;width:14px;height:14px}
       .todo-search input{flex:1;min-width:0;height:100%;padding:0;border:0;outline:none;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}
       .todo-search input::placeholder{color:var(--dsw-alias-label-tertiary)}
-      .todo-chips{display:flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
+      .todo-chips{display:flex;align-items:center;gap:2px;box-sizing:border-box;height:32px;padding:2px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}
       .todo-chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 8px;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-tertiary);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
       .todo-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
       .todo-chip[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);font-weight:600}
@@ -661,8 +661,8 @@ window.__ModuleLoader__.load({
       .todo-list-title:hover{color:var(--dsw-alias-state-business-primary);text-decoration:underline}
       .todo-list-table select{height:24px;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;max-width:140px}
       .todo-list-when{color:var(--dsw-alias-label-tertiary);white-space:nowrap;font-variant-numeric:tabular-nums}
-      .todo-viewtoggle{display:inline-flex;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);overflow:hidden}
-      .todo-viewtoggle button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:0 10px;height:30px;cursor:pointer}
+      .todo-viewtoggle{display:inline-flex;box-sizing:border-box;height:32px;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);overflow:hidden}
+      .todo-viewtoggle button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:0 10px;height:100%;cursor:pointer}
       .todo-viewtoggle button[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);font-weight:600}
       .todo-attach-thumb{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid rgba(120,100,60,.25);flex:none;cursor:zoom-in;background:rgba(255,255,255,.4)}
       .todo-preview-img{max-width:100%;max-height:60vh;object-fit:contain;border-radius:8px;display:block;margin:0 auto}
@@ -2968,8 +2968,6 @@ window.__ModuleLoader__.load({
             onClick: () => setShowArchived(!showArchived),
           }, t('archive'), h('span', { className: 'n' }, String(archivedCount))),
           h('button', { type: 'button', className: 'todo-btn ghost outline', onClick: () => { void arrange() } }, t('arrange')),
-          h('button', { type: 'button', className: 'todo-btn primary', onClick: () => { void createNote() } },
-            h(PlusIcon), t('newNote')),
           h('button', {
             type: 'button',
             className: 'todo-btn ghost icon',
