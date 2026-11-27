@@ -109,7 +109,7 @@ const { apply } = await import('../index.js')
 apply(makeContext(), {})
 check('默认配置下不注册任何工具', registered.length === 0, `registered=${registered.length}`)
 check('默认设置落盘为 llmTools=false', JSON.parse(readFileSync(join(HOME, 'dsh-todo', 'config.json'), 'utf8')).llmTools === false)
-check('路由已注册且要求登录', routes.length === 13 && routes.every((route) => route.auth === 'required'), `routes=${routes.length}`)
+check('路由已注册且要求登录', routes.length === 14 && routes.every((route) => route.auth === 'required'), `routes=${routes.length}`)
 
 // ---------------------------------------------------------------- 普通便签
 

@@ -79,6 +79,56 @@ window.__ModuleLoader__.load({
         dueSoon: '{n} 个便签 1 小时内到期',
         dueOverdue: '{n} 个便签已到期',
         dueBoth: '{o} 个已到期 · {s} 个 1 小时内到期',
+        viewWall: '墙',
+        viewList: '列表',
+        viewToggle: '视图切换',
+        template: '模板',
+        tplPlain: '默认',
+        tplMeeting: '会议',
+        tplBug: 'Bug',
+        tplIdea: '想法',
+        tplMeetingTitle: '会议：',
+        tplMeetingBody: '时间：\n参与：\n议题：\n结论：\n行动项：',
+        tplBugTitle: 'Bug：',
+        tplBugBody: '现象：\n复现：\n期望：\n实际：\n环境：',
+        tplIdeaTitle: '想法：',
+        tplIdeaBody: '背景：\n想法：\n下一步：',
+        archive: '归档',
+        archiveShow: '显示归档',
+        archiveHide: '隐藏归档',
+        selectAll: '全选',
+        selectedN: '已选 {n}',
+        bulkStatus: '批量状态',
+        bulkColor: '批量纸色',
+        bulkWorkspace: '批量工作区',
+        bulkDelete: '删除所选',
+        bulkDone: '批量更新 {n} 张',
+        bulkDeleted: '已删除 {n} 张',
+        clearSelect: '清除选择',
+        listTitle: '标题',
+        listStatus: '状态',
+        listWorkspace: '工作区',
+        listEnd: '结束',
+        listActions: '操作',
+        searchHint: '搜索（支持 status: / workspace:）',
+        remindTitle: '到期提醒',
+        remindDesc: '对设了预计结束且仍待完成的便签，在临近 / 到期时弹悬浮提醒。',
+        remindEnabled: '启用提醒',
+        remindLead: '提前量',
+        remindSoon: '临近气泡时长(分)',
+        remindOverdue: '到期气泡时长(分)',
+        remindRe: '重复提醒间隔(时)',
+        remindCheck: '复检间隔(分)',
+        exportMd: '导出 MD',
+        exportCsv: '导出 CSV',
+        exportedMd: '已导出 Markdown。',
+        exportedCsv: '已导出 CSV。',
+        preview: '预览',
+        previewTitle: '附件预览',
+        previewLoad: '加载中…',
+        previewFail: '无法加载附件。',
+        dropStatus: '已移到 {status}',
+        kbdHint: '快捷键：/ 搜索 · n 新建 · e 编辑 · Delete 删除',
         collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
@@ -214,6 +264,56 @@ window.__ModuleLoader__.load({
         dueSoon: '{n} note(s) due within 1h',
         dueOverdue: '{n} note(s) overdue',
         dueBoth: '{o} overdue · {s} due within 1h',
+        viewWall: 'Wall',
+        viewList: 'List',
+        viewToggle: 'Switch view',
+        template: 'Template',
+        tplPlain: 'Plain',
+        tplMeeting: 'Meeting',
+        tplBug: 'Bug',
+        tplIdea: 'Idea',
+        tplMeetingTitle: 'Meeting: ',
+        tplMeetingBody: 'When:\nWho:\nAgenda:\nDecisions:\nActions:',
+        tplBugTitle: 'Bug: ',
+        tplBugBody: 'Symptom:\nRepro:\nExpected:\nActual:\nEnv:',
+        tplIdeaTitle: 'Idea: ',
+        tplIdeaBody: 'Context:\nIdea:\nNext:',
+        archive: 'Archive',
+        archiveShow: 'Show archived',
+        archiveHide: 'Hide archived',
+        selectAll: 'Select all',
+        selectedN: '{n} selected',
+        bulkStatus: 'Bulk status',
+        bulkColor: 'Bulk color',
+        bulkWorkspace: 'Bulk workspace',
+        bulkDelete: 'Delete selected',
+        bulkDone: 'Bulk updated {n}',
+        bulkDeleted: 'Deleted {n}',
+        clearSelect: 'Clear selection',
+        listTitle: 'Title',
+        listStatus: 'Status',
+        listWorkspace: 'Workspace',
+        listEnd: 'Due',
+        listActions: 'Actions',
+        searchHint: 'Search (status: / workspace: supported)',
+        remindTitle: 'Due reminders',
+        remindDesc: 'Floating reminders for pending notes with an expected end, when near / past due.',
+        remindEnabled: 'Enable reminders',
+        remindLead: 'Lead time',
+        remindSoon: 'Near-due bubble (min)',
+        remindOverdue: 'Overdue bubble (min)',
+        remindRe: 'Re-remind every (h)',
+        remindCheck: 'Check every (min)',
+        exportMd: 'Export MD',
+        exportCsv: 'Export CSV',
+        exportedMd: 'Markdown exported.',
+        exportedCsv: 'CSV exported.',
+        preview: 'Preview',
+        previewTitle: 'Attachment preview',
+        previewLoad: 'Loading…',
+        previewFail: 'Cannot load attachment.',
+        dropStatus: 'Moved to {status}',
+        kbdHint: 'Keys: / search · n new · e edit · Delete delete',
         collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
@@ -384,6 +484,7 @@ window.__ModuleLoader__.load({
       /* ---------------- 便签 ---------------- */
       .todo-note{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;width:${NOTE_W}px;height:${NOTE_H}px;padding:14px 15px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 72%, #7a621f);box-shadow:var(--dsw-elevation-panel);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none;transition:box-shadow .16s,opacity .2s,filter .2s,background-color .25s,translate .16s,scale .16s;animation:todo-note-in .18s cubic-bezier(.2,.8,.2,1)}
       .todo-note.dragging{cursor:grabbing;z-index:9998;box-shadow:var(--dsw-elevation-prominent)}
+      .todo-note.selected{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:2px}
       .todo-note:hover{translate:0 -2px;box-shadow:var(--dsw-elevation-prominent)}
       .todo-note.removing{animation:todo-note-out .16s ease forwards;pointer-events:none}
       .todo-note.pulse .todo-tag .dot{animation:todo-dot-pulse .35s ease}
@@ -562,7 +663,32 @@ window.__ModuleLoader__.load({
       @keyframes todo-dot-pulse{0%{scale:1}45%{scale:1.7}100%{scale:1}}
       @media (max-width:900px){.todo-search{width:150px}.todo-brand .sub{display:none}}
       @media (max-width:720px){.todo-topbar{padding:10px 14px}.todo-statusbar{padding:8px 14px}}
-      @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-note.removing,.todo-note.pulse .todo-tag .dot,.todo-editor .title,.todo-editor textarea,.todo-textview,.todo-bubble,.todo-switch,.todo-switch .knob,.todo-search{transition:none;animation:none}.todo-note:hover{translate:none}}
+      .todo-bulkbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 20px;border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);font-size:12px;animation:todo-fade .15s ease}
+      .todo-bulkbar select{height:26px;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px}
+      .todo-bulkbar .n{color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+      .todo-check{width:14px;height:14px;accent-color:var(--dsw-alias-state-business-primary);cursor:pointer;flex:none}
+      .todo-listview{flex:1;min-height:0;overflow:auto;padding:8px 20px 16px}
+      .todo-list-group{margin:0 0 14px}
+      .todo-list-group>h3{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;gap:6px}
+      .todo-list-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      .todo-list-table th{text-align:left;padding:4px 8px;color:var(--dsw-alias-label-tertiary);font-weight:500;border-bottom:1px solid var(--dsw-alias-border-l1);white-space:nowrap}
+      .todo-list-table td{padding:5px 8px;border-bottom:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-primary);vertical-align:middle}
+      .todo-list-table tr.selected td{background:var(--dsw-alias-interactive-bg-hover)}
+      .todo-list-title{border:0;background:none;padding:0;color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .todo-list-title:hover{color:var(--dsw-alias-state-business-primary);text-decoration:underline}
+      .todo-list-table select{height:24px;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;max-width:140px}
+      .todo-list-when{color:var(--dsw-alias-label-tertiary);white-space:nowrap;font-variant-numeric:tabular-nums}
+      .todo-viewtoggle{display:inline-flex;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);overflow:hidden}
+      .todo-viewtoggle button{border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12px;padding:0 10px;height:30px;cursor:pointer}
+      .todo-viewtoggle button[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary);font-weight:600}
+      .todo-attach-thumb{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid rgba(120,100,60,.25);flex:none;cursor:zoom-in;background:rgba(255,255,255,.4)}
+      .todo-preview-img{max-width:100%;max-height:60vh;object-fit:contain;border-radius:8px;display:block;margin:0 auto}
+      .todo-preview-pre{margin:0;padding:10px 12px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto}
+      .todo-preview-md{max-height:60vh;overflow:auto;font-size:13px;line-height:1.7;color:var(--dsw-alias-label-primary)}
+      .todo-remind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:6px}
+      .todo-remind-grid label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--dsw-alias-label-tertiary)}
+      .todo-remind-grid input,.todo-remind-grid select{height:26px;border:1px solid var(--dsw-alias-border-l3);border-radius:var(--dsw-radius-sm);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;padding:0 6px}
+      @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-note.removing,.todo-note.pulse .todo-tag .dot,.todo-editor .title,.todo-editor textarea,.todo-textview,.todo-bubble,.todo-bulkbar,.todo-switch,.todo-switch .knob,.todo-search{transition:none;animation:none}.todo-note:hover{translate:none}}
       /* 窄右栏响应式：chips 独立成行横滑，搜索与按钮收紧 */
       @container (max-width:560px){
         .todo-topbar{padding:10px 12px;gap:6px 8px}
@@ -739,6 +865,162 @@ window.__ModuleLoader__.load({
       const start = new Date(task.planStartAt).getTime()
       const end = new Date(task.planEndAt).getTime()
       return !Number.isNaN(start) && !Number.isNaN(end) && end < start
+    }
+
+    // ---------------------------------------------------------------- 查询语法 / 模板 / 导入导出
+
+    /** 解析 status:<v> / workspace:<v> token，剩余为自由文本。 */
+    function parseQuery(raw) {
+      const out = { status: null, workspace: null, text: '' }
+      const rest = []
+      for (const token of String(raw || '').trim().split(/\s+/)) {
+        if (!token) continue
+        const m = /^(status|workspace):(.*)$/i.exec(token)
+        if (m && m[2]) {
+          if (m[1].toLowerCase() === 'status') out.status = m[2].toLowerCase()
+          else out.workspace = m[2].toLowerCase()
+        } else rest.push(token)
+      }
+      out.text = rest.join(' ')
+      return out
+    }
+
+    const TEMPLATE_IDS = ['plain', 'meeting', 'bug', 'idea']
+    function templateSkeleton(id, t) {
+      if (id === 'meeting') return { title: t('tplMeetingTitle'), note: t('tplMeetingBody') }
+      if (id === 'bug') return { title: t('tplBugTitle'), note: t('tplBugBody') }
+      if (id === 'idea') return { title: t('tplIdeaTitle'), note: t('tplIdeaBody') }
+      return { title: t('titlePlaceholder'), note: '' }
+    }
+
+    function isImagePath(path) { return /\.(png|jpe?g|gif|webp|svg)$/i.test(String(path || '')) }
+    function isMdPath(path) { return /\.(md|markdown)$/i.test(String(path || '')) }
+    function isTxtPath(path) { return /\.txt$/i.test(String(path || '')) }
+
+    function csvField(value) {
+      const s = String(value ?? '')
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    function exportCsv(tasks) {
+      const head = ['id', 'title', 'note', 'status', 'color', 'workspaceId', 'planStartAt', 'planEndAt', 'parentId']
+      const lines = [head.join(',')]
+      for (const task of tasks) lines.push(head.map((key) => csvField(task[key])).join(','))
+      return lines.join('\r\n')
+    }
+    function parseCsvLine(line) {
+      const out = []
+      let cur = ''
+      let quoted = false
+      for (let i = 0; i < line.length; i += 1) {
+        const ch = line[i]
+        if (quoted) {
+          if (ch === '"') {
+            if (line[i + 1] === '"') { cur += '"'; i += 1 } else quoted = false
+          } else cur += ch
+        } else if (ch === '"') quoted = true
+        else if (ch === ',') { out.push(cur); cur = '' }
+        else cur += ch
+      }
+      out.push(cur)
+      return out
+    }
+    function parseCsv(text) {
+      const lines = String(text || '').split(/\r?\n/).filter((l) => l.trim() !== '')
+      if (lines.length < 2) return []
+      const head = parseCsvLine(lines[0]).map((h) => h.trim())
+      const tasks = []
+      for (const line of lines.slice(1)) {
+        const cells = parseCsvLine(line)
+        const row = {}
+        head.forEach((key, i) => { row[key] = cells[i] ?? '' })
+        if (!row.title || !row.title.trim()) continue
+        tasks.push({
+          id: row.id || undefined,
+          title: row.title,
+          note: row.note || '',
+          status: row.status || 'planned',
+          color: row.color || 'cream',
+          workspaceId: row.workspaceId || null,
+          planStartAt: row.planStartAt || null,
+          planEndAt: row.planEndAt || null,
+          parentId: row.parentId || null,
+        })
+      }
+      return tasks
+    }
+    function exportMarkdown(tasks, t) {
+      const lines = [`# ${t('title')}`, '']
+      for (const task of tasks.slice().sort(compareStatusThenRecent)) {
+        const box = task.status === 'done' ? '[x]' : '[ ]'
+        lines.push(`- ${box} **${task.title}** (${task.status})`)
+        const meta = []
+        if (task.planStartAt) meta.push(`start ${task.planStartAt}`)
+        if (task.planEndAt) meta.push(`due ${task.planEndAt}`)
+        if (task.workspaceId) meta.push(`workspace ${task.workspaceId}`)
+        if (meta.length) lines.push(`  - meta: ${meta.join(' · ')}`)
+        if (task.note) for (const nl of task.note.split('\n')) lines.push(`  ${nl}`)
+        lines.push('')
+      }
+      return lines.join('\n')
+    }
+    function parseMarkdown(text) {
+      const tasks = []
+      let current = null
+      for (const line of String(text || '').split(/\r?\n/)) {
+        const m = /^\s*-\s*\[( |x|X)\]\s*(.*)$/.exec(line)
+        if (m) {
+          if (current) tasks.push(current)
+          let title = m[2].trim()
+          let status = m[1].toLowerCase() === 'x' ? 'done' : 'planned'
+          const sm = /\((planned|active|done|cancelled)\)\s*$/.exec(title)
+          if (sm) { status = sm[1]; title = title.slice(0, sm.index).trim() }
+          title = title.replace(/^\*\*(.*)\*\*$/, '$1')
+          current = { title: title || 'untitled', note: '', status }
+          continue
+        }
+        if (current && /^\s{2,}\S/.test(line)) {
+          const body = line.replace(/^\s{2}/, '')
+          if (/^meta:/.test(body.trim())) {
+            const due = /due (\S+)/.exec(body)
+            const start = /start (\S+)/.exec(body)
+            const ws = /workspace (\S+)/.exec(body)
+            if (due) current.planEndAt = due[1]
+            if (start) current.planStartAt = start[1]
+            if (ws) current.workspaceId = ws[1]
+          } else {
+            current.note += (current.note ? '\n' : '') + body
+          }
+        }
+      }
+      if (current) tasks.push(current)
+      return tasks
+    }
+    /** 按扩展名 / 内容嗅探识别 json / md / csv，返回 tasks 数组或 null。 */
+    function detectImport(name, text) {
+      const lower = String(name || '').toLowerCase()
+      const fromJson = (raw) => {
+        const payload = JSON.parse(raw)
+        return Array.isArray(payload) ? payload : (Array.isArray(payload && payload.tasks) ? payload.tasks : null)
+      }
+      if (lower.endsWith('.md') || lower.endsWith('.markdown')) return parseMarkdown(text)
+      if (lower.endsWith('.csv')) return parseCsv(text)
+      if (lower.endsWith('.json')) return fromJson(text)
+      const trimmed = String(text || '').trim()
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) return fromJson(trimmed)
+      if (/^\s*-\s*\[[ xX]\]/m.test(trimmed)) return parseMarkdown(trimmed)
+      if (trimmed.split(/\r?\n/)[0].includes(',')) return parseCsv(trimmed)
+      return null
+    }
+    function downloadText(filename, text, mime) {
+      const blob = new Blob([text], { type: mime })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
     }
 
     function tiltOf(id) {
@@ -999,6 +1281,14 @@ window.__ModuleLoader__.load({
           if (result.ok) void refresh()
           return result
         },
+        async bulk(ids, patch) {
+          const result = await post('/tasks/bulk', { ids, patch })
+          if (result.ok) void refresh()
+          return result
+        },
+        async serveFile(path) {
+          return get(`/file?path=${encodeURIComponent(path)}`)
+        },
       }
     }
 
@@ -1161,7 +1451,7 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 便签
 
-    function NoteCard({ task, t, canvasWidth, draggingEnabled, suppressed, removing, query, onOpen, onMove, onDragY, onDragStart, onDragEnd, onContextMenu }) {
+    function NoteCard({ task, t, canvasWidth, draggingEnabled, suppressed, removing, query, selected, onToggleSelect, onDropStatus, onOpen, onMove, onDragY, onDragStart, onDragEnd, onContextMenu }) {
       const nodeRef = React.useRef(null)
       const dragRef = React.useRef(null)
       const suppressClickRef = React.useRef(0)
@@ -1226,8 +1516,20 @@ window.__ModuleLoader__.load({
           setDragging(false)
           onDragEnd()
           suppressClickRef.current = Date.now()
-          onMove(task.id, clamp(drag.origX + dx), Math.max(8, drag.origY + dy))
+          const dropEl = document.elementFromPoint(event.clientX, event.clientY)
+          const chip = dropEl && dropEl.closest ? dropEl.closest('.todo-chip[data-status]') : null
+          if (chip && onDropStatus) {
+            onDropStatus(task.id, chip.getAttribute('data-status'))
+            setPosition({ x: clamp(task.x ?? 0), y: task.y ?? 0 })
+          } else {
+            onMove(task.id, clamp(drag.origX + dx), Math.max(8, drag.origY + dy))
+          }
         } else {
+          if ((event.ctrlKey || event.metaKey) && onToggleSelect) {
+            suppressClickRef.current = Date.now()
+            onToggleSelect(task.id)
+            return
+          }
           onOpen()
         }
       }
@@ -1251,7 +1553,7 @@ window.__ModuleLoader__.load({
 
       return h('article', {
         ref: nodeRef,
-        className: 'todo-note' + (dragging ? ' dragging' : '') + (quiet ? ' quiet' : '') + (removing ? ' removing' : '') + (pulse ? ' pulse' : ''),
+        className: 'todo-note' + (dragging ? ' dragging' : '') + (quiet ? ' quiet' : '') + (removing ? ' removing' : '') + (pulse ? ' pulse' : '') + (selected ? ' selected' : ''),
         role: 'button',
         tabIndex: 0,
         'aria-label': [task.title || t('titlePlaceholder'), t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1)), when, t('edit')].filter(Boolean).join('，'),
@@ -1271,6 +1573,7 @@ window.__ModuleLoader__.load({
           if (!draggingEnabled) return
           if (Date.now() - suppressClickRef.current < 300) return
           if (event.target.closest('.todo-tag')) return
+          if ((event.ctrlKey || event.metaKey) && onToggleSelect) { onToggleSelect(task.id); return }
           onOpen()
         },
         onKeyDown: (event) => {
@@ -1302,6 +1605,7 @@ window.__ModuleLoader__.load({
       const [body, setBody] = React.useState(task.note || '')
       const [showEnd, setShowEnd] = React.useState(Boolean(task.planEndAt))
       const [draftPath, setDraftPath] = React.useState('')
+      const [previewEntry, setPreviewEntry] = React.useState(null)
       const [error, setError] = React.useState(null)
       const [confirmDelete, setConfirmDelete] = React.useState(false)
       const [position, setPosition] = React.useState({ x: task.x ?? 8, y: task.y ?? 8 })
@@ -1563,9 +1867,17 @@ window.__ModuleLoader__.load({
           }
         },
       },
+        isImagePath(entry.path) ? h(AttachmentThumb, { store, entry, onPreview: setPreviewEntry }) : null,
         h('span', { className: 'todo-attach-name' }, entry.name || entry.path),
         h('span', { className: 'todo-attach-path' }, entry.path),
         entry.missing ? h('span', { className: 'todo-attach-warn' }, t('missingFile')) : null,
+        (isImagePath(entry.path) || isMdPath(entry.path) || isTxtPath(entry.path))
+          ? h('button', {
+            type: 'button',
+            className: 'todo-attach-remove',
+            onClick: (event) => { event.stopPropagation(); setPreviewEntry(entry) },
+          }, t('preview'))
+          : null,
         h('button', {
           type: 'button',
           className: 'todo-attach-remove',
@@ -1756,7 +2068,8 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: 'todo-mini danger', onClick: remove },
             confirmDelete ? t('deleteAgain') : t('delete')),
           h('span', { className: 'spacer' }),
-          h('span', { className: 'todo-quick-hint' }, t('quickHint')))))
+          h('span', { className: 'todo-quick-hint' }, t('quickHint')))),
+        previewEntry ? h(PreviewDialog, { t, store, entry: previewEntry, onClose: () => setPreviewEntry(null) }) : null)
     }
 
     // ---------------------------------------------------------------- 设置弹层
@@ -1956,6 +2269,46 @@ window.__ModuleLoader__.load({
         setNotice({ kind: 'ok', text: t('configSaved') })
       }
 
+      const remind = {
+        enabled: true, leadMinutes: 60, soonMin: 30, overdueMin: 10, reRemindHours: 1, checkMin: 5,
+        ...(snapshot.config.remind || {}),
+      }
+      async function saveRemind(patchRemind) {
+        const result = await store.setConfig({ remind: { ...remind, ...patchRemind } })
+        setNotice(result.ok
+          ? { kind: 'ok', text: t('configSaved') }
+          : { kind: 'error', text: requestErrorText(t, result) })
+      }
+
+      async function doExport() {
+        setBusy(true)
+        const result = await store.exportWall()
+        setBusy(false)
+        if (!result.ok) { setNotice({ kind: 'error', text: requestErrorText(t, result) }); return }
+        downloadText(`sticky-wall-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(result.data, null, 2), 'application/json')
+        setNotice({ kind: 'ok', text: t('exported') })
+      }
+      function doExportMd() {
+        downloadText(`sticky-wall-${new Date().toISOString().slice(0, 10)}.md`, exportMarkdown(snapshot.tasks, t), 'text/markdown')
+        setNotice({ kind: 'ok', text: t('exportedMd') })
+      }
+      function doExportCsv() {
+        downloadText(`sticky-wall-${new Date().toISOString().slice(0, 10)}.csv`, exportCsv(snapshot.tasks), 'text/csv')
+        setNotice({ kind: 'ok', text: t('exportedCsv') })
+      }
+      async function doImport(file) {
+        let tasks
+        try { tasks = detectImport(file.name, await file.text()) } catch { setNotice({ kind: 'error', text: t('importBadFile') }); return }
+        if (!tasks) { setNotice({ kind: 'error', text: t('importBadFile') }); return }
+        if (importMode === 'replace' && !window.confirm(t('importConfirm'))) return
+        setBusy(true)
+        const result = await store.importWall({ mode: importMode, tasks })
+        setBusy(false)
+        setNotice(result.ok
+          ? { kind: 'ok', text: t('imported', { added: result.data.added, skipped: result.data.skipped }) }
+          : { kind: 'error', text: requestErrorText(t, result) })
+      }
+
       const storage = snapshot.storage || {}
 
       return h('div', {
@@ -2011,10 +2364,12 @@ window.__ModuleLoader__.load({
                   h('option', { value: 'replace' }, t('importReplace')))),
               h('div', { className: 'todo-general-control' },
                 h('button', { type: 'button', className: 'todo-mini', disabled: busy, onClick: () => { void doExport() } }, t('exportWall')),
+                h('button', { type: 'button', className: 'todo-mini', disabled: busy, onClick: doExportMd }, t('exportMd')),
+                h('button', { type: 'button', className: 'todo-mini', disabled: busy, onClick: doExportCsv }, t('exportCsv')),
                 h('label', { className: 'todo-mini', style: { cursor: 'pointer', display: 'inline-flex', alignItems: 'center' } }, t('importWall'),
                   h('input', {
                     type: 'file',
-                    accept: '.json,application/json',
+                    accept: '.json,.md,.markdown,.csv,application/json,text/markdown,text/csv',
                     style: { display: 'none' },
                     onChange: (event) => {
                       const file = event.target.files && event.target.files[0]
@@ -2022,6 +2377,48 @@ window.__ModuleLoader__.load({
                       event.target.value = ''
                     },
                   })))),
+            h('div', { className: 'todo-setting' },
+              h('div', { className: 'todo-setting-copy' },
+                h('span', { className: 'todo-setting-title' }, t('remindTitle')),
+                h('p', { className: 'todo-setting-desc' }, t('remindDesc')),
+                h('div', { className: 'todo-remind-grid' },
+                  h('label', null,
+                    t('remindLead'),
+                    h('select', {
+                      value: String(remind.leadMinutes),
+                      onChange: (event) => { void saveRemind({ leadMinutes: Number(event.target.value) }) },
+                    },
+                      ...[15, 30, 60, 120, 1440].map((m) => h('option', { key: m, value: String(m) }, `${m} min`)))),
+                  h('label', null,
+                    t('remindSoon'),
+                    h('input', {
+                      type: 'number', min: 1, value: remind.soonMin,
+                      onChange: (event) => { void saveRemind({ soonMin: Math.max(1, Number(event.target.value) || 1) }) },
+                    })),
+                  h('label', null,
+                    t('remindOverdue'),
+                    h('input', {
+                      type: 'number', min: 1, value: remind.overdueMin,
+                      onChange: (event) => { void saveRemind({ overdueMin: Math.max(1, Number(event.target.value) || 1) }) },
+                    })),
+                  h('label', null,
+                    t('remindRe'),
+                    h('input', {
+                      type: 'number', min: 1, value: remind.reRemindHours,
+                      onChange: (event) => { void saveRemind({ reRemindHours: Math.max(1, Number(event.target.value) || 1) }) },
+                    })),
+                  h('label', null,
+                    t('remindCheck'),
+                    h('input', {
+                      type: 'number', min: 1, value: remind.checkMin,
+                      onChange: (event) => { void saveRemind({ checkMin: Math.max(1, Number(event.target.value) || 1) }) },
+                    })))),
+              h(Switch, {
+                checked: remind.enabled !== false,
+                onChange: (next) => { void saveRemind({ enabled: next }) },
+                disabled: busy,
+                label: t('remindEnabled'),
+              })),
             notice
               ? h('p', {
                 className: notice.kind === 'error' ? 'todo-error' : 'todo-notice',
@@ -2036,6 +2433,169 @@ window.__ModuleLoader__.load({
               h('p', { className: 'todo-path' }, storage.configFile)) : null),
           h('div', { className: 'todo-dialog-foot' },
             h('button', { type: 'button', className: 'todo-btn ghost', onClick: onClose }, t('close')))))
+    }
+
+    // ---------------------------------------------------------------- 附件缩略图 / 预览 / 批量 / 列表
+
+    function b64ToText(base64) {
+      return new TextDecoder().decode(Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)))
+    }
+
+    function AttachmentThumb({ store, entry, onPreview }) {
+      const [url, setUrl] = React.useState(null)
+      React.useEffect(() => {
+        let alive = true
+        setUrl(null)
+        void store.serveFile(entry.path).then((result) => {
+          if (!alive || !result.ok) return
+          setUrl(`data:${result.data.contentType || 'image/png'};base64,${result.data.base64}`)
+        })
+        return () => { alive = false }
+      }, [entry.path])
+      if (!url) return h('span', { className: 'todo-attach-thumb', 'aria-hidden': true })
+      return h('img', {
+        className: 'todo-attach-thumb',
+        src: url,
+        alt: entry.name || entry.path,
+        onClick: (event) => { event.stopPropagation(); onPreview(entry) },
+      })
+    }
+
+    function PreviewDialog({ t, store, entry, onClose }) {
+      const [data, setData] = React.useState(null)
+      const [error, setError] = React.useState(null)
+      const dialogRef = React.useRef(null)
+      useFocusTrap(dialogRef)
+      React.useEffect(() => {
+        const onKey = (event) => { if (event.key === 'Escape') onClose() }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [onClose])
+      React.useEffect(() => {
+        let alive = true
+        setData(null)
+        setError(null)
+        void store.serveFile(entry.path).then((result) => {
+          if (!alive) return
+          if (result.ok) setData(result.data)
+          else setError(requestErrorText(t, result))
+        })
+        return () => { alive = false }
+      }, [entry.path])
+      let body
+      if (error) body = h('p', { className: 'todo-error', role: 'alert' }, error)
+      else if (!data) body = h('p', null, t('previewLoad'))
+      else if (isImagePath(entry.path)) body = h('img', { className: 'todo-preview-img', src: `data:${data.contentType || 'image/png'};base64,${data.base64}`, alt: data.name || entry.path })
+      else if (isMdPath(entry.path)) body = h('div', { className: 'todo-preview-md' }, renderMarkdown(b64ToText(data.base64), '', 'pv'))
+      else body = h('pre', { className: 'todo-preview-pre' }, b64ToText(data.base64))
+      return h('div', { className: 'todo-overlay', role: 'presentation', onClick: onClose },
+        h('div', { className: 'todo-mask', 'aria-hidden': true }),
+        h('div', {
+          ref: dialogRef,
+          className: 'todo-dialog',
+          role: 'dialog',
+          'aria-modal': 'true',
+          onClick: (event) => event.stopPropagation(),
+        },
+          h('div', { className: 'todo-dialog-head' },
+            h('h2', { className: 'todo-dialog-title' }, t('previewTitle')),
+            h('button', { type: 'button', className: 'todo-dialog-close', 'aria-label': t('close'), onClick: onClose }, h(CloseIcon))),
+          h('div', { className: 'todo-dialog-body' }, body)))
+    }
+
+    function BulkBar({ t, store, ids, workspaces, onClear, onDone }) {
+      const [busy, setBusy] = React.useState(false)
+      async function applyPatch(patch) {
+        if (busy) return
+        setBusy(true)
+        const result = await store.bulk(ids, patch)
+        setBusy(false)
+        if (result.ok) onDone(t('bulkDone', { n: result.data.updated }))
+        else onDone(null, requestErrorText(t, result))
+      }
+      async function del() {
+        if (busy) return
+        setBusy(true)
+        let n = 0
+        for (const id of ids) {
+          const result = await store.remove(id)
+          if (result.ok) n += 1
+        }
+        setBusy(false)
+        onDone(t('bulkDeleted', { n }))
+        onClear()
+      }
+      return h('div', { className: 'todo-bulkbar', role: 'toolbar', 'aria-label': t('selectedN', { n: ids.length }) },
+        h('span', { className: 'n' }, t('selectedN', { n: ids.length })),
+        h('select', {
+          'aria-label': t('bulkStatus'), value: '', disabled: busy,
+          onChange: (event) => { const v = event.target.value; event.target.value = ''; if (v) void applyPatch({ status: v }) },
+        },
+          h('option', { value: '' }, t('bulkStatus')),
+          ...STATUSES.map((s) => h('option', { key: s, value: s }, t('status' + s.charAt(0).toUpperCase() + s.slice(1))))),
+        h('select', {
+          'aria-label': t('bulkColor'), value: '', disabled: busy,
+          onChange: (event) => { const v = event.target.value; event.target.value = ''; if (v) void applyPatch({ color: v }) },
+        },
+          h('option', { value: '' }, t('bulkColor')),
+          ...PAPER_ORDER.map((c) => h('option', { key: c, value: c }, t('color' + c.charAt(0).toUpperCase() + c.slice(1))))),
+        h('select', {
+          'aria-label': t('bulkWorkspace'), value: '', disabled: busy,
+          onChange: (event) => { const v = event.target.value; event.target.value = ''; if (v) void applyPatch({ workspaceId: v === '__none' ? null : v }) },
+        },
+          h('option', { value: '' }, t('bulkWorkspace')),
+          h('option', { value: '__none' }, t('unlinked')),
+          ...workspaces.map((w) => h('option', { key: w.id, value: w.id }, w.title || w.path || w.id))),
+        h('button', { type: 'button', className: 'todo-mini danger', disabled: busy, onClick: () => { void del() } }, t('bulkDelete')),
+        h('button', { type: 'button', className: 'todo-mini', onClick: onClear }, t('clearSelect')))
+    }
+
+    function ListView({ t, store, tasks, selectedIds, onToggleSelect, onToggleAll, onOpenEdit, onRemove, workspaces }) {
+      const groups = STATUSES
+        .map((s) => ({ status: s, items: tasks.filter((x) => x.status === s) }))
+        .filter((g) => g.items.length > 0)
+      const allSelected = tasks.length > 0 && tasks.every((x) => selectedIds.includes(x.id))
+      return h('div', { className: 'todo-listview' },
+        h('label', { style: { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, marginBottom: 8, cursor: 'pointer' } },
+          h('input', { type: 'checkbox', className: 'todo-check', checked: allSelected, onChange: () => onToggleAll() }),
+          t('selectAll')),
+        ...groups.map((g) => {
+          const rows = g.items.map((task) => {
+            const cells = [
+              h('td', null, h('input', {
+                type: 'checkbox',
+                className: 'todo-check',
+                checked: selectedIds.includes(task.id),
+                onChange: () => onToggleSelect(task.id),
+                'aria-label': task.title,
+              })),
+              h('td', null, h('button', { type: 'button', className: 'todo-list-title', title: task.title, onClick: () => onOpenEdit(task.id) }, task.title || t('titlePlaceholder'))),
+              h('td', null, h('select', {
+                value: task.status,
+                'aria-label': t('listStatus'),
+                onChange: (event) => { void store.update(task.id, { status: event.target.value }) },
+              }, ...STATUSES.map((s) => h('option', { key: s, value: s }, t('status' + s.charAt(0).toUpperCase() + s.slice(1)))))),
+              h('td', null, h('select', {
+                value: task.workspaceId || '',
+                'aria-label': t('listWorkspace'),
+                onChange: (event) => { void store.update(task.id, { workspaceId: event.target.value || null }) },
+              },
+                h('option', { value: '' }, t('unlinked')),
+                ...workspaces.map((w) => h('option', { key: w.id, value: w.id }, w.title || w.path || w.id)),
+                task.workspaceId && !workspaces.some((w) => w.id === task.workspaceId) ? h('option', { value: task.workspaceId }, t('removedWorkspace')) : null)),
+              h('td', { className: 'todo-list-when' }, task.planEndAt ? formatWhen(task.planEndAt) : '—'),
+              h('td', null, h('button', { type: 'button', className: 'todo-mini danger', onClick: () => onRemove(task.id) }, t('delete'))),
+            ]
+            return h('tr', { key: task.id, className: selectedIds.includes(task.id) ? 'selected' : '' }, ...cells)
+          })
+          const ths = ['', t('listTitle'), t('listStatus'), t('listWorkspace'), t('listEnd'), t('listActions')]
+            .map((label, i) => h('th', { key: i }, label))
+          return h('div', { key: g.status, className: 'todo-list-group' },
+            h('h3', null, t('status' + g.status.charAt(0).toUpperCase() + g.status.slice(1)), ` · ${g.items.length}`),
+            h('table', { className: 'todo-list-table' },
+              h('thead', null, h('tr', null, ...ths)),
+              h('tbody', null, ...rows)))
+        }))
     }
 
     // ---------------------------------------------------------------- 主面板
@@ -2057,6 +2617,11 @@ window.__ModuleLoader__.load({
       const [ctxMenu, setCtxMenu] = React.useState(null)
       const [pendingTextEdit, setPendingTextEdit] = React.useState(null)
       const [viewport, setViewport] = React.useState({ top: 0, height: 800 })
+      const [view, setView] = React.useState('wall')
+      const [selectedIds, setSelectedIds] = React.useState([])
+      const [showArchived, setShowArchived] = React.useState(false)
+      const [template, setTemplate] = React.useState('plain')
+      const searchRef = React.useRef(null)
       const scrollRef = React.useRef(null)
       const pointerY = React.useRef(null)
       const autoScroll = React.useRef(null)
@@ -2088,6 +2653,11 @@ window.__ModuleLoader__.load({
         return () => clearTimeout(handle)
       }, [notice])
 
+      // 任务被删/导入替换后，剪掉已不存在的选中 id。
+      React.useEffect(() => {
+        setSelectedIds((list) => list.filter((id) => tasks.some((x) => x.id === id)))
+      }, [tasks])
+
       React.useEffect(() => () => {
         if (autoScroll.current !== null) {
           clearInterval(autoScroll.current)
@@ -2096,16 +2666,32 @@ window.__ModuleLoader__.load({
       }, [])
 
       const tasks = snapshot.tasks
+      const parsed = parseQuery(query)
+      const freeText = parsed.text
+      const isArchived = (task) => task.status === 'done' || task.status === 'cancelled'
+      const hideArchived = !showArchived && filter !== 'done' && filter !== 'cancelled'
+      const matchWorkspace = (task) => {
+        if (!parsed.workspace) return true
+        if (!task.workspaceId) return false
+        if (task.workspaceId.toLowerCase() === parsed.workspace) return true
+        const ws = (snapshot.workspaces || []).find((w) => w.id === task.workspaceId)
+        return ws ? (ws.title || ws.path || '').toLowerCase().includes(parsed.workspace) : false
+      }
       const byFilter = tasks.filter((task) => {
         if (filter !== 'all' && task.status !== filter) return false
-        if (!query.trim()) return true
-        const needle = query.trim().toLowerCase()
+        if (parsed.status && task.status !== parsed.status) return false
+        if (hideArchived && isArchived(task)) return false
+        if (!matchWorkspace(task)) return false
+        if (!freeText) return true
+        const needle = freeText.toLowerCase()
         return task.title.toLowerCase().includes(needle)
           || (task.note || '').toLowerCase().includes(needle)
           || timeText(task, t).toLowerCase().includes(needle)
       })
       const visibleIds = new Set(byFilter.map((task) => task.id))
+      const archivedCount = tasks.filter(isArchived).length
       const renderTasks = tasks.filter((task) => {
+        if (hideArchived && isArchived(task)) return false
         const y = task.y ?? 0
         return y + NOTE_H >= viewport.top - 240 && y <= viewport.top + viewport.height + 240
       })
@@ -2173,11 +2759,12 @@ window.__ModuleLoader__.load({
         return { x: 24, y: 24 + tasks.length * 20 }
       }
 
-      async function createNote() {
+      async function createNote(coord, templateId) {
         if (busy || editingId !== null) return
         setBusy(true)
-        const spot = findSpot()
-        const result = await store.create({ title: t('titlePlaceholder'), x: spot.x, y: spot.y, color: 'cream' })
+        const spot = coord || findSpot()
+        const skeleton = templateSkeleton(templateId || template, t)
+        const result = await store.create({ title: skeleton.title, note: skeleton.note, x: spot.x, y: spot.y, color: 'cream' })
         setBusy(false)
         if (!result.ok) {
           setNotice({ kind: 'error', text: requestErrorText(t, result) })
@@ -2188,6 +2775,75 @@ window.__ModuleLoader__.load({
         setEditingId(result.data.task.id)
         setNotice({ kind: 'ok', text: t('created') })
       }
+
+      function toggleSelect(id) {
+        setSelectedIds((list) => (list.includes(id) ? list.filter((x) => x !== id) : list.concat(id)))
+      }
+      function toggleAll() {
+        setSelectedIds((list) => (byFilter.length > 0 && byFilter.every((x) => list.includes(x.id)) ? [] : byFilter.map((x) => x.id)))
+      }
+      async function dropStatus(id, status) {
+        const result = await store.update(id, { status })
+        if (result.ok) setNotice({ kind: 'ok', text: t('dropStatus', { status: t('status' + status.charAt(0).toUpperCase() + status.slice(1)) }) })
+        else setNotice({ kind: 'error', text: requestErrorText(t, result) })
+      }
+      function openEditFromList(id) {
+        setView('wall')
+        setClosing(false)
+        setEditingId(id)
+        const task = tasks.find((x) => x.id === id)
+        if (task && scrollRef.current) scrollRef.current.scrollTo({ top: Math.max(0, (task.y ?? 0) - 40) })
+      }
+      function locateFirst() {
+        const first = byFilter[0]
+        if (!first || !scrollRef.current) return
+        setView('wall')
+        scrollRef.current.scrollTo({ top: Math.max(0, (first.y ?? 0) - 40), behavior: 'smooth' })
+      }
+      function canvasDoubleClick(event) {
+        if (event.target.closest('.todo-note') || event.target.closest('.todo-editor')) return
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const rect = canvas.getBoundingClientRect()
+        const x = Math.max(8, Math.min(event.clientX - rect.left, Math.max(8, canvasWidth - NOTE_W - 8)))
+        const y = Math.max(8, event.clientY - rect.top)
+        void createNote({ x, y })
+      }
+
+      // 键盘流：/ 搜索、n 新建、e 编辑、Delete 删除；守卫墙可见且焦点不在输入控件。
+      const keyStateRef = React.useRef(null)
+      keyStateRef.current = { byFilter, renderTasks, visibleIds, editingId, selectedIds }
+      const actionsRef = React.useRef(null)
+      actionsRef.current = { createNote, removeNote }
+      React.useEffect(() => {
+        const onKey = (event) => {
+          const root = scrollRef.current && scrollRef.current.closest('.todo-root')
+          if (!root || root.getBoundingClientRect().width === 0) return
+          const el = event.target
+          const tag = el && el.tagName
+          if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (el && el.isContentEditable)) return
+          if (event.ctrlKey || event.metaKey || event.altKey) return
+          const st = keyStateRef.current
+          const act = actionsRef.current
+          if (event.key === '/') {
+            event.preventDefault()
+            if (searchRef.current) searchRef.current.focus()
+          } else if (event.key === 'n') {
+            event.preventDefault()
+            void act.createNote()
+          } else if (event.key === 'e') {
+            event.preventDefault()
+            const first = st.renderTasks.find((x) => st.visibleIds.has(x.id)) || st.byFilter[0]
+            const id = st.editingId || (first && first.id)
+            if (id) { setView('wall'); setClosing(false); setEditingId(id) }
+          } else if (event.key === 'Delete') {
+            const id = st.editingId || st.selectedIds[0]
+            if (id) { event.preventDefault(); act.removeNote(id) }
+          }
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [])
 
       /** 收回展开卡：先播缩回小卡的形变，再卸载。 */
       function collapseEditor() {
@@ -2259,10 +2915,14 @@ window.__ModuleLoader__.load({
           h('div', { className: 'todo-search' },
             h(SearchIcon),
             h('input', {
+              ref: searchRef,
               value: query,
-              placeholder: t('search'),
+              placeholder: t('searchHint'),
               'aria-label': t('search'),
               onChange: (event) => setQuery(event.target.value),
+              onKeyDown: (event) => {
+                if (event.key === 'Enter') { event.preventDefault(); locateFirst() }
+              },
             })),
           h('div', { className: 'todo-chips', role: 'group', 'aria-label': t('statusField') },
             ...chips.map((chip) => h('button', {
@@ -2276,6 +2936,23 @@ window.__ModuleLoader__.load({
               chip.status === 'all' ? null : h('i', { className: 'dot' }),
               chip.label,
               h('span', { className: 'n' }, String(counts[chip.status] || 0))))),
+          h('div', { className: 'todo-viewtoggle', role: 'group', 'aria-label': t('viewToggle') },
+            h('button', { type: 'button', 'aria-pressed': view === 'wall' ? 'true' : 'false', onClick: () => setView('wall') }, t('viewWall')),
+            h('button', { type: 'button', 'aria-pressed': view === 'list' ? 'true' : 'false', onClick: () => setView('list') }, t('viewList'))),
+          h('select', {
+            'aria-label': t('template'),
+            title: t('template'),
+            value: template,
+            style: { height: '30px' },
+            onChange: (event) => setTemplate(event.target.value),
+          }, ...TEMPLATE_IDS.map((id) => h('option', { key: id, value: id }, t('tpl' + id.charAt(0).toUpperCase() + id.slice(1))))),
+          h('button', {
+            type: 'button',
+            className: 'todo-btn ghost outline',
+            'aria-pressed': showArchived ? 'true' : 'false',
+            title: (showArchived ? t('archiveHide') : t('archiveShow')) + ` (${archivedCount})`,
+            onClick: () => setShowArchived(!showArchived),
+          }, t('archive'), h('span', { className: 'n' }, String(archivedCount))),
           h('button', { type: 'button', className: 'todo-btn ghost outline', onClick: () => { void arrange() } }, t('arrange')),
           h('button', { type: 'button', className: 'todo-btn primary', onClick: () => { void createNote() } },
             h(PlusIcon), t('newNote')),
@@ -2304,7 +2981,7 @@ window.__ModuleLoader__.load({
           collapseEditor()
         },
       },
-        h('div', { ref: canvasRef, className: 'todo-canvas', style: { minHeight: `${canvasHeight}px` } },
+        h('div', { ref: canvasRef, className: 'todo-canvas', style: { minHeight: `${canvasHeight}px` }, onDoubleClick: canvasDoubleClick },
           ...renderTasks.slice().sort((left, right) => String(left.updatedAt || '').localeCompare(String(right.updatedAt || ''))).map((task) => h(NoteCard, {
             key: task.id,
             task: { ...task, hidden: !visibleIds.has(task.id) },
@@ -2313,7 +2990,10 @@ window.__ModuleLoader__.load({
             draggingEnabled: editingId === null,
             suppressed: editingId === task.id,
             removing: removingIds.includes(task.id),
-            query,
+            query: freeText,
+            selected: selectedIds.includes(task.id),
+            onToggleSelect: toggleSelect,
+            onDropStatus: dropStatus,
             onOpen: () => { setClosing(false); setEditingId(task.id) },
             onContextMenu: (event) => openCtx(event, task.id, false),
             onMove: moveNote,
@@ -2328,7 +3008,7 @@ window.__ModuleLoader__.load({
             canvasWidth,
             store,
             closing,
-            query,
+            query: freeText,
             initialTextMode: pendingTextEdit,
             onConsumeText: () => setPendingTextEdit(null),
             onContextMenu: (event) => openCtx(event, editing.id, true),
@@ -2357,6 +3037,8 @@ window.__ModuleLoader__.load({
       const statusbar = h('div', { className: 'todo-statusbar' },
         h('span', { className: 'todo-status-hint' }, t('wallHint')),
         h('span', { className: 'sep', 'aria-hidden': true }),
+        h('span', { className: 'todo-status-hint' }, t('kbdHint')),
+        h('span', { className: 'sep', 'aria-hidden': true }),
         h('span', { className: 'state' },
           `${tasks.length} · ${t('statusPlanned')} ${counts.planned} · ${t('statusActive')} ${counts.active} · ${t('statusDone')} ${counts.done} · ${t('statusCancelled')} ${counts.cancelled}`),
         h('span', { className: 'spacer' }),
@@ -2378,7 +3060,25 @@ window.__ModuleLoader__.load({
             ? h('button', { type: 'button', className: 'todo-mini', onClick: () => { void undoDelete(notice.undo) } }, t('undo'))
             : null)
           : null,
-        wall,
+        selectedIds.length > 0 ? h(BulkBar, {
+          t,
+          store,
+          ids: selectedIds,
+          workspaces: snapshot.workspaces || [],
+          onClear: () => setSelectedIds([]),
+          onDone: (msg, err) => setNotice(err ? { kind: 'error', text: err } : { kind: 'ok', text: msg }),
+        }) : null,
+        view === 'list' ? h(ListView, {
+          t,
+          store,
+          tasks: byFilter,
+          selectedIds,
+          onToggleSelect: toggleSelect,
+          onToggleAll: toggleAll,
+          onOpenEdit: openEditFromList,
+          onRemove: removeNote,
+          workspaces: snapshot.workspaces || [],
+        }) : wall,
         statusbar,
         settingsOpen ? h(SettingsDialog, { t, store, onClose: () => setSettingsOpen(false) }) : null,
         trashOpen ? h(TrashDialog, { t, store, onClose: () => setTrashOpen(false) }) : null,
@@ -2401,7 +3101,9 @@ window.__ModuleLoader__.load({
     /** 会话标题栏右上图标排里的入口：点开右栏便签墙。 */
     function HeaderToggle(props) {
       const t = props.t || translator
-      const pending = useSnapshot(WALL_STORE).pending || 0
+      const snapshot = useSnapshot(WALL_STORE)
+      const pending = snapshot.pending || 0
+      const remindKey = JSON.stringify(snapshot.config.remind || {})
       const label = pending > 0 ? `${t('nav')} · ${t('pendingCount', { n: pending })}` : t('nav')
       const buttonRef = React.useRef(null)
       const bubbleRef = React.useRef(null)
@@ -2442,15 +3144,18 @@ window.__ModuleLoader__.load({
         return () => { clearTimeout(timer); if (hideTimerRef.current) clearTimeout(hideTimerRef.current) }
       }, [])
 
-      // 到期提醒：只看待完成且设了 planEndAt 的卡；1h 内临近 / 已过期。
-      // 临近气泡持续 30min、已过期持续 10min；之后同一卡同一阈值每 1h 再提醒；5min 复检。
+      // 到期提醒：只看待完成且设了 planEndAt 的卡；阈值/时长/复检间隔读 config.remind。
       React.useEffect(() => {
         let first = null
         let interval = null
         const check = () => {
           const snap = WALL_STORE.getSnapshot()
           if (snap.phase !== 'ready') return
+          const cfg = { enabled: true, leadMinutes: 60, soonMin: 30, overdueMin: 10, reRemindHours: 1, checkMin: 5, ...(snap.config.remind || {}) }
+          if (cfg.enabled === false) return
           if (bubbleRef.current) return // 不与启动气泡 / 已有提醒同屏
+          const lead = Math.max(1, Number(cfg.leadMinutes) || 60) * 60000
+          const reRemind = Math.max(1, Number(cfg.reRemindHours) || 1) * 3600000
           const now = Date.now()
           let soon = 0
           let overdue = 0
@@ -2464,23 +3169,27 @@ window.__ModuleLoader__.load({
             if (delta <= 0) {
               const key = `${task.id}:overdue`
               const last = dueReminded.get(key)
-              if (last === undefined || now - last >= 3600000) { overdue += 1; keys.push(key) }
-            } else if (delta <= 3600000) {
+              if (last === undefined || now - last >= reRemind) { overdue += 1; keys.push(key) }
+            } else if (delta <= lead) {
               const key = `${task.id}:soon`
               const last = dueReminded.get(key)
-              if (last === undefined || now - last >= 3600000) { soon += 1; keys.push(key) }
+              if (last === undefined || now - last >= reRemind) { soon += 1; keys.push(key) }
             }
           }
           if (soon === 0 && overdue === 0) return
           const pos = anchor()
           if (!pos) return
           for (const key of keys) dueReminded.set(key, now)
-          showBubble({ kind: 'due', soon, overdue, ...pos }, overdue > 0 ? 600000 : 1800000)
+          const ms = overdue > 0
+            ? Math.max(1, Number(cfg.overdueMin) || 10) * 60000
+            : Math.max(1, Number(cfg.soonMin) || 30) * 60000
+          showBubble({ kind: 'due', soon, overdue, ...pos }, ms)
         }
+        const cfg0 = { checkMin: 5, ...((WALL_STORE.getSnapshot().config || {}).remind || {}) }
         first = setTimeout(check, 9000)
-        interval = setInterval(check, 300000)
+        interval = setInterval(check, Math.max(1, Number(cfg0.checkMin) || 5) * 60000)
         return () => { clearTimeout(first); clearInterval(interval) }
-      }, [])
+      }, [remindKey])
 
       React.useEffect(() => {
         if (!bubble) return undefined
@@ -2585,37 +3294,6 @@ window.__ModuleLoader__.load({
           : { kind: 'error', text: requestErrorText(t, result) })
       }
 
-      async function doExport() {
-        setBusy(true)
-        const result = await store.exportWall()
-        setBusy(false)
-        if (!result.ok) { setNotice({ kind: 'error', text: requestErrorText(t, result) }); return }
-        const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `sticky-wall-${new Date().toISOString().slice(0, 10)}.json`
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
-        setNotice({ kind: 'ok', text: t('exported') })
-      }
-
-      async function doImport(file) {
-        let payload
-        try { payload = JSON.parse(await file.text()) } catch { setNotice({ kind: 'error', text: t('importBadFile') }); return }
-        const tasks = Array.isArray(payload) ? payload : (Array.isArray(payload && payload.tasks) ? payload.tasks : null)
-        if (!tasks) { setNotice({ kind: 'error', text: t('importBadFile') }); return }
-        if (importMode === 'replace' && !window.confirm(t('importConfirm'))) return
-        setBusy(true)
-        const result = await store.importWall({ mode: importMode, tasks })
-        setBusy(false)
-        setNotice(result.ok
-          ? { kind: 'ok', text: t('imported', { added: result.data.added, skipped: result.data.skipped }) }
-          : { kind: 'error', text: requestErrorText(t, result) })
-      }
-
       return h('div', { className: 'todo-general-row' },
         h('style', null, CSS),
         h('div', { className: 'todo-general-copy' },
@@ -2669,6 +3347,45 @@ window.__ModuleLoader__.load({
 
       // 全局样式：入口按钮不依赖墙面板是否挂载。
       try { ctx.effect(() => ensureStyle(), 'todo-wall: global styles') } catch (error) { console.warn('[todo-wall] styles', error) }
+
+      // 开墙快捷键：默认 Ctrl+Shift+T，被占则退让到备选绑定。
+      if (typeof ctx.inject === 'function') {
+        ctx.inject(['shortcuts'], (scope) => {
+          const sc = scope.shortcuts
+          if (!sc || typeof sc.register !== 'function') return
+          scope.effect(() => {
+            const prof = `${sc.runtime}:${sc.platform}`
+            const free = (binding) => {
+              try {
+                const d = typeof sc.describeBinding === 'function' ? sc.describeBinding(binding) : null
+                return !d || (!d.issue && !(d.conflicts || []).length)
+              } catch { return false }
+            }
+            const cands = [
+              { code: 'KeyT', modifiers: ['primary', 'shift'] },
+              { code: 'KeyT', modifiers: ['primary', 'alt'] },
+              { code: 'KeyW', modifiers: ['primary', 'shift'] },
+            ]
+            const binding = cands.find(free)
+            let off = null
+            try {
+              off = sc.register({
+                id: 'sticky-wall.open',
+                label: () => t('nav'),
+                aliases: ['sticky wall', 'todo wall', '便签墙'],
+                defaults: binding ? { [prof]: binding } : {},
+                regions: ['page', 'editable'],
+                modals: [],
+                resolve: () => { openRight(); return { status: 'handled' } },
+              })
+            } catch (error) {
+              console.warn('[sticky-wall] shortcut register failed', error)
+              return () => {}
+            }
+            return () => { if (typeof off === 'function') off() }
+          }, 'sticky-wall: open shortcut')
+        })
+      }
 
       const slots = ctx.slots
       if (!slots || typeof slots.inject !== 'function' || typeof slots.register !== 'function') return

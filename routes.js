@@ -111,6 +111,7 @@ export function registerRoutes(webServer, service) {
     route('/trash', ['GET'], () => service.trash())
     route('/trash/empty', ['POST'], () => service.emptyTrash())
     route('/tasks/bulk', ['POST'], ({ body }) => service.bulkUpdate(body))
+    route('/file', ['GET'], ({ url }) => service.serveFile(url.searchParams.get('path')))
   } catch (error) {
     // 部分注册失败不能泄漏已经注册上的路由。
     for (const dispose of disposers.splice(0)) {

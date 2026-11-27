@@ -41,7 +41,21 @@ const GRID_COLUMNS = 4
 const GRID_STEP_X = 264
 const GRID_STEP_Y = 224
 
-const DEFAULT_CONFIG = Object.freeze({ llmTools: false })
+const REMIND_DEFAULT = Object.freeze({ enabled: true, leadMinutes: 60, soonMin: 30, overdueMin: 10, reRemindHours: 1, checkMin: 5 })
+const DEFAULT_CONFIG = Object.freeze({ llmTools: false, remind: REMIND_DEFAULT })
+
+function normalizeRemind(value) {
+  const src = isPlainObject(value) ? value : {}
+  const num = (v, def, min, max) => (Number.isFinite(v) ? Math.max(min, Math.min(max, Math.round(v))) : def)
+  return {
+    enabled: src.enabled !== false,
+    leadMinutes: num(src.leadMinutes, REMIND_DEFAULT.leadMinutes, 5, 1440),
+    soonMin: num(src.soonMin, REMIND_DEFAULT.soonMin, 1, 240),
+    overdueMin: num(src.overdueMin, REMIND_DEFAULT.overdueMin, 1, 240),
+    reRemindHours: num(src.reRemindHours, REMIND_DEFAULT.reRemindHours, 1, 24),
+    checkMin: num(src.checkMin, REMIND_DEFAULT.checkMin, 1, 60),
+  }
+}
 
 const MAX_TASKS = 2000
 const MAX_TITLE = 200
@@ -419,7 +433,7 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
   }
 
   function snapshotConfig() {
-    return { llmTools: configRef.current.llmTools === true }
+    return { llmTools: configRef.current.llmTools === true, remind: normalizeRemind(configRef.current.remind) }
   }
 
   /** 新建便签没有位置时，按当前数量落一个网格位。 */
@@ -487,11 +501,35 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
       if (has(body, 'llmTools')) {
         if (typeof body.llmTools !== 'boolean') throw userError('llmTools must be a boolean', 400, 'CONFIG_INVALID')
         configRef.current = { ...configRef.current, llmTools: body.llmTools }
-        writeJsonAtomic(CONFIG_FILE, { llmTools: configRef.current.llmTools })
+        writeJsonAtomic(CONFIG_FILE, { llmTools: configRef.current.llmTools, remind: configRef.current.remind })
         syncTools(configRef.current.llmTools)
         log(ctx, `LLM tools ${configRef.current.llmTools ? 'enabled' : 'disabled'} from settings`)
       }
+      if (has(body, 'remind')) {
+        configRef.current = {
+          ...configRef.current,
+          remind: normalizeRemind({ ...configRef.current.remind, ...(isPlainObject(body.remind) ? body.remind : {}) }),
+        }
+        writeJsonAtomic(CONFIG_FILE, { llmTools: configRef.current.llmTools, remind: configRef.current.remind })
+      }
       return { ...snapshotConfig(), configFile: CONFIG_FILE }
+    },
+
+    /** 附件预览取文件（base64 + content-type），限 5MB、白名单类型。 */
+    serveFile(path) {
+      const target = textField(path, 'path', 1000, true)
+      if (!existsSync(target)) throw userError(`file not found: ${target}`, 404, 'NOT_FOUND')
+      const stat = statSync(target)
+      if (!stat.isFile()) throw userError('not a file', 400, 'INVALID')
+      if (stat.size > 5 * 1024 * 1024) throw userError('file too large to preview (5MB max)', 413, 'TOO_LARGE')
+      const ext = ((target.match(/\.([a-z0-9]+)$/i) || [])[1] || '').toLowerCase()
+      const types = {
+        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+        webp: 'image/webp', svg: 'image/svg+xml', md: 'text/markdown', markdown: 'text/markdown', txt: 'text/plain',
+      }
+      const contentType = types[ext]
+      if (!contentType) throw userError('unsupported preview type', 415, 'UNSUPPORTED')
+      return { name: basename(target), contentType, base64: readFileSync(target).toString('base64') }
     },
 
     list(options = {}) {
@@ -1228,9 +1266,10 @@ export function apply(ctx, rawConfig = {}) {
   }
   const config = { ...DEFAULT_CONFIG, ...(isPlainObject(rawConfig) ? rawConfig : {}), ...(isPlainObject(stored) ? stored : {}) }
   config.llmTools = config.llmTools === true
-  if (!isPlainObject(stored)) writeJsonAtomic(CONFIG_FILE, { llmTools: config.llmTools })
+  config.remind = normalizeRemind(config.remind)
+  if (!isPlainObject(stored)) writeJsonAtomic(CONFIG_FILE, { llmTools: config.llmTools, remind: config.remind })
 
-  const configRef = { current: { llmTools: config.llmTools } }
+  const configRef = { current: { llmTools: config.llmTools, remind: config.remind } }
   const store = createStore(ctx)
 
   // 工具注册/撤销：设置一改就生效，不需要重载插件。
@@ -1324,6 +1363,7 @@ export function apply(ctx, rawConfig = {}) {
         trash: () => operations.trash(),
         emptyTrash: () => operations.emptyTrash(),
         bulkUpdate: (body) => operations.bulkUpdate(body),
+        serveFile: (path) => operations.serveFile(path),
       })
       webCtx.effect(() => disposeRoutes, 'dsh-todo: panel routes')
       log(ctx, 'panel routes registered')
