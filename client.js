@@ -15,6 +15,8 @@ window.__ModuleLoader__.load({
   id: '@wysl/dsh-sticky-wall',
   factory(require) {
     const React = require('react')
+    let ReactDOM = null
+    try { ReactDOM = require('react-dom') } catch { ReactDOM = null }
     const h = React.createElement
 
     const API = '/dsh-todo/api'
@@ -534,9 +536,10 @@ window.__ModuleLoader__.load({
       .todo-headbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
       .todo-headbtn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}
       .todo-headbtn .todo-pending-dot{position:absolute;top:3px;right:3px}
-      /* 启动待办胶囊：顶栏行内、不遮挡对话区；壳层 UI 用宿主 token 随外观适配 */
-      .todo-bubble{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;margin-right:2px;border:1px solid var(--dsw-alias-border-l1);border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-size:11px;line-height:1;white-space:nowrap;flex:none;animation:todo-fade .18s ease}
-      .todo-bubble-view{border:0;background:none;padding:0;color:var(--dsw-alias-state-business-primary);font:inherit;font-size:11px;line-height:1;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+      /* 启动待办悬浮框：锚按钮下方、标签条右侧空白带，单行紧凑不遮对话；宿主 token 随外观适配 */
+      .todo-bubble{position:fixed;z-index:10002;transform:translateX(-100%);display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);box-shadow:var(--dsw-elevation-prominent);font-size:12px;line-height:18px;white-space:nowrap;animation:todo-fade .18s ease}
+      .todo-bubble-arrow{position:absolute;top:-5px;right:12px;width:8px;height:8px;transform:rotate(45deg);background:var(--dsw-alias-bg-layer-2);border-left:1px solid var(--dsw-alias-border-l2);border-top:1px solid var(--dsw-alias-border-l2)}
+      .todo-bubble-view{border:0;background:none;padding:0;color:var(--dsw-alias-state-business-primary);font:inherit;font-size:12px;line-height:18px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
       /* 右栏标签体：撑满右栏面板高度 */
       .todo-pane{height:100%;min-height:0;display:flex;flex-direction:column}
 
@@ -2390,9 +2393,11 @@ window.__ModuleLoader__.load({
       const t = props.t || translator
       const pending = useSnapshot(WALL_STORE).pending || 0
       const label = pending > 0 ? `${t('nav')} · ${t('pendingCount', { n: pending })}` : t('nav')
+      const buttonRef = React.useRef(null)
+      const bubbleRef = React.useRef(null)
       const [bubble, setBubble] = React.useState(null)
 
-      // 启动 2s 后在顶栏行内显示一次待办胶囊（属于标题栏自身，不遮挡对话区）。
+      // 启动 2s 后弹一次悬浮待办框：锚在按钮下方、标签条右侧空白带内，不遮对话区。
       React.useEffect(() => {
         let timer = null
         let hide = null
@@ -2405,8 +2410,16 @@ window.__ModuleLoader__.load({
             if (tries < 4) timer = setTimeout(attempt, 1200)
             return
           }
+          const node = buttonRef.current
+          if (!node) return
+          const rect = node.getBoundingClientRect()
+          if (rect.width === 0) return
           bootBubbleDone = true
-          setBubble({ n: snap.pending })
+          setBubble({
+            left: Math.max(rect.right, 240),
+            top: rect.bottom + 4,
+            n: snap.pending,
+          })
           hide = setTimeout(() => setBubble(null), 6000)
         }
         timer = setTimeout(attempt, 2000)
@@ -2416,8 +2429,20 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         if (!bubble) return undefined
         const onKey = (event) => { if (event.key === 'Escape') setBubble(null) }
+        const onDown = (event) => {
+          if (bubbleRef.current && bubbleRef.current.contains(event.target)) return
+          if (buttonRef.current && buttonRef.current.contains(event.target)) return
+          setBubble(null)
+        }
+        const onResize = () => setBubble(null)
         window.addEventListener('keydown', onKey)
-        return () => window.removeEventListener('keydown', onKey)
+        document.addEventListener('pointerdown', onDown, true)
+        window.addEventListener('resize', onResize)
+        return () => {
+          window.removeEventListener('keydown', onKey)
+          document.removeEventListener('pointerdown', onDown, true)
+          window.removeEventListener('resize', onResize)
+        }
       }, [bubble])
 
       function open() {
@@ -2425,17 +2450,28 @@ window.__ModuleLoader__.load({
         if (typeof props.open === 'function') props.open(props.sid)
       }
 
+      const bubbleNode = bubble ? h('div', {
+        ref: bubbleRef,
+        className: 'todo-bubble',
+        role: 'status',
+        style: { left: `${bubble.left}px`, top: `${bubble.top}px` },
+      },
+        h('span', { className: 'todo-bubble-arrow', 'aria-hidden': true }),
+        h('span', null, t('bubblePending', { n: bubble.n })),
+        h('button', { type: 'button', className: 'todo-bubble-view', onClick: open }, t('bubbleView'))) : null
+
       return h(React.Fragment, null,
-        bubble ? h('span', { className: 'todo-bubble', role: 'status' },
-          h('span', null, t('bubblePending', { n: bubble.n })),
-          h('button', { type: 'button', className: 'todo-bubble-view', onClick: open }, t('bubbleView'))) : null,
         h('button', {
+          ref: buttonRef,
           type: 'button',
           className: 'todo-headbtn',
           title: label,
           'aria-label': label,
           onClick: open,
-        }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false })))
+        }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false })),
+        bubbleNode && ReactDOM && typeof ReactDOM.createPortal === 'function'
+          ? ReactDOM.createPortal(bubbleNode, document.body)
+          : bubbleNode)
     }
 
     /** 右栏标签体：便签墙撑满右栏面板。 */
