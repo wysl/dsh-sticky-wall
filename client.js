@@ -15,6 +15,8 @@ window.__ModuleLoader__.load({
   id: '@wysl/dsh-sticky-wall',
   factory(require) {
     const React = require('react')
+    let ReactDOM = null
+    try { ReactDOM = require('react-dom') } catch { ReactDOM = null }
     const h = React.createElement
 
     const API = '/dsh-todo/api'
@@ -993,6 +995,8 @@ window.__ModuleLoader__.load({
 
     // 面板、侧栏计数与设置行共用一份快照：只开一个轮询。
     const WALL_STORE = createWallStore()
+    // 每次页面加载（UI 启动）只弹一次启动气泡；模块级标记，刷新即重置。
+    let bootBubbleDone = false
 
     // ---------------------------------------------------------------- 图标
 
@@ -2392,14 +2396,12 @@ window.__ModuleLoader__.load({
       const bubbleRef = React.useRef(null)
       const [bubble, setBubble] = React.useState(null)
 
-      // 启动 2s 后在按钮下方弹一次待办概览气泡（每浏览器会话一次）。
+      // 启动 2s 后在按钮下方弹一次待办概览气泡（每次页面加载一次）。
       React.useEffect(() => {
         let timer = null
         let hide = null
         let tries = 0
-        try {
-          if (sessionStorage.getItem('dsh-sticky-wall-boot-bubble')) return undefined
-        } catch { return undefined }
+        if (bootBubbleDone) return undefined
         const attempt = () => {
           const snap = WALL_STORE.getSnapshot()
           if (snap.phase !== 'ready' || !(snap.pending > 0)) {
@@ -2411,7 +2413,7 @@ window.__ModuleLoader__.load({
           if (!node) return
           const rect = node.getBoundingClientRect()
           if (rect.width === 0) return
-          try { sessionStorage.setItem('dsh-sticky-wall-boot-bubble', '1') } catch { /* 忽略 */ }
+          bootBubbleDone = true
           const center = rect.left + rect.width / 2
           setBubble({
             left: Math.min(Math.max(center, 110), Math.max(110, window.innerWidth - 110)),
@@ -2443,6 +2445,10 @@ window.__ModuleLoader__.load({
         }
       }, [bubble])
 
+      const portal = (node) => (ReactDOM && typeof ReactDOM.createPortal === 'function' && typeof document !== 'undefined')
+        ? ReactDOM.createPortal(node, document.body)
+        : node
+
       return h(React.Fragment, null,
         h('button', {
           ref: buttonRef,
@@ -2452,7 +2458,7 @@ window.__ModuleLoader__.load({
           'aria-label': label,
           onClick: () => { if (typeof props.open === 'function') props.open(props.sid) },
         }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false })),
-        bubble ? h('div', {
+        bubble ? portal(h('div', {
           ref: bubbleRef,
           className: 'todo-bubble',
           role: 'status',
@@ -2464,7 +2470,7 @@ window.__ModuleLoader__.load({
             type: 'button',
             className: 'todo-mini',
             onClick: () => { setBubble(null); if (typeof props.open === 'function') props.open(props.sid) },
-          }, t('bubbleView'))) : null)
+          }, t('bubbleView')))) : null)
     }
 
     /** 右栏标签体：便签墙撑满右栏面板。 */
