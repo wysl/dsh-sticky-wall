@@ -464,6 +464,7 @@ window.__ModuleLoader__.load({
       .todo-wallhint{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;color:var(--dsw-alias-label-tertiary);font-size:13px;line-height:1.9;pointer-events:none}
       .todo-wallhint strong{display:block;color:var(--dsw-alias-label-secondary);font-size:15px;font-weight:500;margin-bottom:2px}
       .todo-statusbar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 20px;border-top:1px solid var(--dsw-alias-border-l1);color:var(--dsw-alias-label-tertiary);font-size:12px;background:var(--dsw-alias-bg-base)}
+      .todo-status-hint{color:#9c4030;color:light-dark(#9c4030,#d08770)}
       .todo-statusbar .sep{width:1px;height:12px;background:var(--dsw-alias-border-l1)}
       .todo-statusbar .spacer{flex:1}
       .todo-statusbar .state{font-variant-numeric:tabular-nums;white-space:nowrap}
