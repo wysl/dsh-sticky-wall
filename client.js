@@ -2883,9 +2883,20 @@ window.__ModuleLoader__.load({
         setClosing(true)
       }
       function finishClose() {
+        maybeCancelDraft()
         draftRef.current = null
         setClosing(false)
         setEditingId(null)
+      }
+      /** 草稿未做任何编辑/选项操作 → 取消创建。需要在清空 draftRef 之前调用。 */
+      function maybeCancelDraft() {
+        const id = draftRef.current
+        if (id && !draftTouchedRef.current) {
+          draftRef.current = null
+          void store.remove(id).then((result) => {
+            if (result.ok) setNotice({ kind: 'ok', text: t('draftCancelled') })
+          })
+        }
       }
       /** 删除：先播小卡缩淡出，再真正移除（进回收站，可撤销）。 */
       function removeNote(id) {
