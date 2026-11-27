@@ -105,6 +105,12 @@ export function registerRoutes(webServer, service) {
     route('/tasks/arrange', ['POST'], ({ body }) => service.arrange(body))
     route('/tasks/delete', ['POST'], ({ body }) => service.remove(body))
     route('/open', ['POST'], ({ body }) => service.open(body))
+    route('/export', ['GET'], () => service.exportWall())
+    route('/import', ['POST'], ({ body }) => service.importWall(body))
+    route('/tasks/restore', ['POST'], ({ body }) => service.restore(body))
+    route('/trash', ['GET'], () => service.trash())
+    route('/trash/empty', ['POST'], () => service.emptyTrash())
+    route('/tasks/bulk', ['POST'], ({ body }) => service.bulkUpdate(body))
   } catch (error) {
     // 部分注册失败不能泄漏已经注册上的路由。
     for (const dispose of disposers.splice(0)) {

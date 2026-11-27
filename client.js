@@ -44,6 +44,23 @@ window.__ModuleLoader__.load({
         dblEdit: '双击编辑',
         emptyBodyHint: '双击添加正文…',
         openAttachment: '用系统默认程序打开',
+        trash: '回收站',
+        trashTitle: '回收站',
+        trashEmpty: '回收站是空的。',
+        restore: '恢复',
+        emptyTrash: '清空回收站',
+        undo: '撤销',
+        backupTitle: '备份与恢复',
+        backupDesc: '导出整面墙为 JSON 备份；导入时合并只补新 id，替换会覆盖整墙（需确认）。',
+        exportWall: '导出 JSON',
+        importWall: '导入 JSON',
+        importMode: '导入方式',
+        importMerge: '合并（只补新 id）',
+        importReplace: '替换整墙',
+        importConfirm: '替换会覆盖当前整面墙，确定继续？',
+        importBadFile: '文件不是有效的备份 JSON。',
+        exported: '已导出备份文件。',
+        imported: '导入完成：新增 {added}，跳过 {skipped}。',
         collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
@@ -146,6 +163,23 @@ window.__ModuleLoader__.load({
         dblEdit: 'Double-click to edit',
         emptyBodyHint: 'Double-click to add body…',
         openAttachment: 'Open with system default',
+        trash: 'Trash',
+        trashTitle: 'Trash',
+        trashEmpty: 'Trash is empty.',
+        restore: 'Restore',
+        emptyTrash: 'Empty trash',
+        undo: 'Undo',
+        backupTitle: 'Backup & restore',
+        backupDesc: 'Export the whole wall as a JSON backup; import merges only new ids, replace overwrites the wall (confirmed).',
+        exportWall: 'Export JSON',
+        importWall: 'Import JSON',
+        importMode: 'Import mode',
+        importMerge: 'Merge (new ids only)',
+        importReplace: 'Replace wall',
+        importConfirm: 'Replace overwrites the entire wall. Continue?',
+        importBadFile: 'File is not a valid backup JSON.',
+        exported: 'Backup file exported.',
+        imported: 'Import done: added {added}, skipped {skipped}.',
         collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
@@ -392,6 +426,10 @@ window.__ModuleLoader__.load({
       .todo-attach.openable{cursor:pointer}
       .todo-attach.openable:hover{background:rgba(120,100,60,.12)}
       .todo-attach.openable:focus-visible{outline:2px solid var(--todo-ink-soft);outline-offset:1px}
+      .todo-trash-list{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+      .todo-trash-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--dsw-alias-border-l1)}
+      .todo-trash-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+      .todo-trash-when{flex:none;color:var(--dsw-alias-label-tertiary);font-size:11px}
       .todo-attach-name{flex:none;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
       .todo-attach-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--todo-ink-faint)}
       .todo-attach-warn{flex:none;color:var(--todo-danger)}
@@ -674,6 +712,7 @@ window.__ModuleLoader__.load({
         workspaces: [],
         storage: null,
         pending: 0,
+        trashCount: 0,
         error: null,
       }
       const listeners = new Set()
@@ -732,6 +771,7 @@ window.__ModuleLoader__.load({
             workspaces: Array.isArray(data.workspaces) ? data.workspaces : [],
             storage: data.storage || null,
             pending: typeof data.pending === 'number' ? data.pending : 0,
+            trashCount: typeof data.trashCount === 'number' ? data.trashCount : 0,
             error: null,
           })
         } catch {
@@ -758,6 +798,25 @@ window.__ModuleLoader__.load({
             headers: { 'content-type': 'application/json' },
             body: JSON.stringify(body || {}),
           })
+        } catch {
+          return { ok: false, error: 'REQUEST' }
+        }
+        if (response.status === 401 || response.status === 403) return { ok: false, error: 'AUTH', code: 'AUTH' }
+        const payload = await readJson(response)
+        if (!payload || payload.ok !== true) {
+          return {
+            ok: false,
+            error: (payload && typeof payload.error === 'string' && payload.error) || 'REQUEST',
+            code: payload && typeof payload.code === 'string' ? payload.code : undefined,
+          }
+        }
+        return { ok: true, data: payload.data }
+      }
+
+      async function get(path) {
+        let response
+        try {
+          response = await fetch(`${API}${path}`, { credentials: 'same-origin', cache: 'no-store' })
         } catch {
           return { ok: false, error: 'REQUEST' }
         }
@@ -867,6 +926,27 @@ window.__ModuleLoader__.load({
         async open(path) {
           return post('/open', { path })
         },
+        async restore(id) {
+          const result = await post('/tasks/restore', { id })
+          if (result.ok) void refresh()
+          return result
+        },
+        async emptyTrash() {
+          const result = await post('/trash/empty', {})
+          if (result.ok) void refresh()
+          return result
+        },
+        async trash() {
+          return get('/trash')
+        },
+        async exportWall() {
+          return get('/export')
+        },
+        async importWall(payload) {
+          const result = await post('/import', payload)
+          if (result.ok) void refresh()
+          return result
+        },
       }
     }
 
@@ -949,6 +1029,17 @@ window.__ModuleLoader__.load({
         'aria-hidden': true,
         style: { display: 'block' },
       }, h('path', { d: 'M4 5.5 8 9.5 12 5.5M4 12.5h8', stroke: 'currentColor', strokeWidth: 1.2, strokeLinecap: 'round', strokeLinejoin: 'round' }))
+    }
+
+    function TrashIcon() {
+      return h('svg', {
+        width: 14,
+        height: 14,
+        viewBox: '0 0 16 16',
+        fill: 'none',
+        'aria-hidden': true,
+        style: { display: 'block' },
+      }, h('path', { d: 'M2.5 4h11M6.5 2h3M4 4l.7 9.5h6.6L12 4M6.5 6.5v4.5M9.5 6.5v4.5', stroke: 'currentColor', strokeWidth: 1.2, strokeLinecap: 'round', strokeLinejoin: 'round' }))
     }
 
     function SearchIcon() {
@@ -1608,10 +1699,81 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 设置弹层
 
+    function TrashDialog({ t, store, onClose }) {
+      const [items, setItems] = React.useState(null)
+      const [error, setError] = React.useState(null)
+      const [confirmEmpty, setConfirmEmpty] = React.useState(false)
+      const dialogRef = React.useRef(null)
+      useFocusTrap(dialogRef)
+      React.useEffect(() => {
+        const onKey = (event) => { if (event.key === 'Escape') onClose() }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [onClose])
+      React.useEffect(() => {
+        let alive = true
+        void store.trash().then((result) => {
+          if (!alive) return
+          if (result.ok) setItems(result.data.items || [])
+          else setError(requestErrorText(t, result))
+        })
+        return () => { alive = false }
+      }, [])
+      React.useEffect(() => {
+        if (!confirmEmpty) return undefined
+        const handle = setTimeout(() => setConfirmEmpty(false), 4000)
+        return () => clearTimeout(handle)
+      }, [confirmEmpty])
+      async function restore(id) {
+        const result = await store.restore(id)
+        if (!result.ok) { setError(requestErrorText(t, result)); return }
+        setItems((list) => (list || []).filter((entry) => entry.task.id !== id))
+      }
+      async function empty() {
+        if (!confirmEmpty) { setConfirmEmpty(true); return }
+        const result = await store.emptyTrash()
+        if (!result.ok) { setError(requestErrorText(t, result)); return }
+        setItems([])
+        setConfirmEmpty(false)
+      }
+      return h('div', { className: 'todo-overlay', role: 'presentation', onClick: onClose },
+        h('div', { className: 'todo-mask', 'aria-hidden': true }),
+        h('div', {
+          ref: dialogRef,
+          className: 'todo-dialog',
+          role: 'dialog',
+          'aria-modal': 'true',
+          onClick: (event) => event.stopPropagation(),
+        },
+          h('div', { className: 'todo-dialog-head' },
+            h('h2', { className: 'todo-dialog-title' }, t('trashTitle')),
+            h('button', { type: 'button', className: 'todo-dialog-close', 'aria-label': t('close'), onClick: onClose }, h(CloseIcon))),
+          h('div', { className: 'todo-dialog-body' },
+            error ? h('p', { className: 'todo-error', role: 'alert' }, error) : null,
+            items === null ? h('p', null, t('loading')) : null,
+            items && items.length === 0 ? h('p', null, t('trashEmpty')) : null,
+            items && items.length > 0
+              ? h('ul', { className: 'todo-trash-list' }, ...items.map((entry) => h('li', { key: entry.task.id, className: 'todo-trash-row' },
+                h('span', { className: 'todo-trash-title' }, entry.task.title),
+                h('span', { className: 'todo-trash-when' }, new Date(entry.deletedAt).toLocaleString()),
+                h('button', { type: 'button', className: 'todo-mini', onClick: () => { void restore(entry.task.id) } }, t('restore')))))
+              : null,
+            h('div', { className: 'todo-editor-foot' },
+              h('button', {
+                type: 'button',
+                className: 'todo-mini danger',
+                disabled: !items || items.length === 0,
+                onClick: () => { void empty() },
+              }, confirmEmpty ? t('deleteAgain') : t('emptyTrash')),
+              h('span', { className: 'spacer' }),
+              h('button', { type: 'button', className: 'todo-mini', onClick: onClose }, t('close'))))))
+    }
+
     function SettingsDialog({ t, store, onClose }) {
       const snapshot = useSnapshot(store)
       const [busy, setBusy] = React.useState(false)
       const [notice, setNotice] = React.useState(null)
+      const [importMode, setImportMode] = React.useState('merge')
       const enabled = snapshot.config.llmTools === true
       const dialogRef = React.useRef(null)
       useFocusTrap(dialogRef)
@@ -1669,8 +1831,37 @@ window.__ModuleLoader__.load({
                   h('li', null, 'todo_list'),
                   h('li', null, 'todo_create'),
                   h('li', null, 'todo_update'),
-                  h('li', null, 'todo_split'))),
+                  h('li', null, 'todo_split'),
+                  h('li', null, 'todo_delete'),
+                  h('li', null, 'todo_restore'),
+                  h('li', null, 'todo_bulk_update'),
+                  h('li', null, 'todo_arrange'))),
               h(Switch, { checked: enabled, onChange: toggle, disabled: busy, label: t('llmTitle') })),
+            h('div', { className: 'todo-setting' },
+              h('div', { className: 'todo-setting-copy' },
+                h('span', { className: 'todo-setting-title' }, t('backupTitle')),
+                h('p', { className: 'todo-setting-desc' }, t('backupDesc')),
+                h('select', {
+                  value: importMode,
+                  'aria-label': t('importMode'),
+                  onChange: (event) => setImportMode(event.target.value),
+                  style: { height: '28px' },
+                },
+                  h('option', { value: 'merge' }, t('importMerge')),
+                  h('option', { value: 'replace' }, t('importReplace')))),
+              h('div', { className: 'todo-general-control' },
+                h('button', { type: 'button', className: 'todo-mini', disabled: busy, onClick: () => { void doExport() } }, t('exportWall')),
+                h('label', { className: 'todo-mini', style: { cursor: 'pointer', display: 'inline-flex', alignItems: 'center' } }, t('importWall'),
+                  h('input', {
+                    type: 'file',
+                    accept: '.json,application/json',
+                    style: { display: 'none' },
+                    onChange: (event) => {
+                      const file = event.target.files && event.target.files[0]
+                      if (file) void doImport(file)
+                      event.target.value = ''
+                    },
+                  })))),
             notice
               ? h('p', {
                 className: notice.kind === 'error' ? 'todo-error' : 'todo-notice',
@@ -1702,10 +1893,32 @@ window.__ModuleLoader__.load({
       const [busy, setBusy] = React.useState(false)
       const [closing, setClosing] = React.useState(false)
       const [removingIds, setRemovingIds] = React.useState([])
+      const [trashOpen, setTrashOpen] = React.useState(false)
+      const [viewport, setViewport] = React.useState({ top: 0, height: 800 })
       const scrollRef = React.useRef(null)
       const pointerY = React.useRef(null)
       const autoScroll = React.useRef(null)
       const draftRef = React.useRef(null)
+
+      // 大墙性能：只渲染视口附近（上下各留一屏余量）的便签。
+      React.useEffect(() => {
+        const node = scrollRef.current
+        if (!node) return undefined
+        let raf = null
+        const measure = () => {
+          raf = null
+          setViewport({ top: node.scrollTop, height: node.clientHeight })
+        }
+        const onScroll = () => { if (raf === null) raf = requestAnimationFrame(measure) }
+        measure()
+        node.addEventListener('scroll', onScroll, { passive: true })
+        window.addEventListener('resize', onScroll)
+        return () => {
+          node.removeEventListener('scroll', onScroll)
+          window.removeEventListener('resize', onScroll)
+          if (raf !== null) cancelAnimationFrame(raf)
+        }
+      }, [])
 
       React.useEffect(() => {
         if (!notice) return undefined
@@ -1730,6 +1943,10 @@ window.__ModuleLoader__.load({
           || timeText(task, t).toLowerCase().includes(needle)
       })
       const visibleIds = new Set(byFilter.map((task) => task.id))
+      const renderTasks = tasks.filter((task) => {
+        const y = task.y ?? 0
+        return y + NOTE_H >= viewport.top - 240 && y <= viewport.top + viewport.height + 240
+      })
 
       const counts = { all: tasks.length }
       for (const status of STATUSES) counts[status] = 0
@@ -1820,15 +2037,23 @@ window.__ModuleLoader__.load({
         setClosing(false)
         setEditingId(null)
       }
-      /** 删除：先播小卡缩淡出，再真正移除。 */
+      /** 删除：先播小卡缩淡出，再真正移除（进回收站，可撤销）。 */
       function removeNote(id) {
         if (removingIds.includes(id)) return
         setRemovingIds(removingIds.concat(id))
         setTimeout(() => {
-          void store.remove(id)
+          void store.remove(id).then((result) => {
+            if (result.ok) setNotice({ kind: 'ok', text: t('removed'), undo: id })
+          })
           setRemovingIds((list) => list.filter((item) => item !== id))
           if (editingId === id) finishClose()
         }, 170)
+      }
+
+      async function undoDelete(id) {
+        setNotice(null)
+        const result = await store.restore(id)
+        if (!result.ok) setNotice({ kind: 'error', text: requestErrorText(t, result) })
       }
 
       async function arrange() {
@@ -1882,6 +2107,13 @@ window.__ModuleLoader__.load({
           h('button', {
             type: 'button',
             className: 'todo-btn ghost icon',
+            'aria-label': t('trash'),
+            title: t('trash') + (snapshot.trashCount ? ` (${snapshot.trashCount})` : ''),
+            onClick: () => setTrashOpen(true),
+          }, h(TrashIcon)),
+          h('button', {
+            type: 'button',
+            className: 'todo-btn ghost icon',
             'aria-label': t('settings'),
             title: t('settings'),
             onClick: () => setSettingsOpen(true),
@@ -1898,7 +2130,7 @@ window.__ModuleLoader__.load({
         },
       },
         h('div', { ref: canvasRef, className: 'todo-canvas', style: { minHeight: `${canvasHeight}px` } },
-          ...tasks.slice().sort((left, right) => String(left.updatedAt || '').localeCompare(String(right.updatedAt || ''))).map((task) => h(NoteCard, {
+          ...renderTasks.slice().sort((left, right) => String(left.updatedAt || '').localeCompare(String(right.updatedAt || ''))).map((task) => h(NoteCard, {
             key: task.id,
             task: { ...task, hidden: !visibleIds.has(task.id) },
             t,
@@ -1963,11 +2195,14 @@ window.__ModuleLoader__.load({
           ? h('p', {
             className: notice.kind === 'error' ? 'todo-error' : 'todo-notice',
             role: notice.kind === 'error' ? 'alert' : 'status',
-          }, notice.text)
+          }, notice.text, notice.undo
+            ? h('button', { type: 'button', className: 'todo-mini', onClick: () => { void undoDelete(notice.undo) } }, t('undo'))
+            : null)
           : null,
         wall,
         statusbar,
-        settingsOpen ? h(SettingsDialog, { t, store, onClose: () => setSettingsOpen(false) }) : null)
+        settingsOpen ? h(SettingsDialog, { t, store, onClose: () => setSettingsOpen(false) }) : null,
+        trashOpen ? h(TrashDialog, { t, store, onClose: () => setTrashOpen(false) }) : null)
     }
 
     // ---------------------------------------------------------------- 入口按钮与右栏面板
@@ -2021,6 +2256,37 @@ window.__ModuleLoader__.load({
         setBusy(false)
         setNotice(result.ok
           ? { kind: 'ok', text: t('configSaved') }
+          : { kind: 'error', text: requestErrorText(t, result) })
+      }
+
+      async function doExport() {
+        setBusy(true)
+        const result = await store.exportWall()
+        setBusy(false)
+        if (!result.ok) { setNotice({ kind: 'error', text: requestErrorText(t, result) }); return }
+        const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `sticky-wall-${new Date().toISOString().slice(0, 10)}.json`
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+        setNotice({ kind: 'ok', text: t('exported') })
+      }
+
+      async function doImport(file) {
+        let payload
+        try { payload = JSON.parse(await file.text()) } catch { setNotice({ kind: 'error', text: t('importBadFile') }); return }
+        const tasks = Array.isArray(payload) ? payload : (Array.isArray(payload && payload.tasks) ? payload.tasks : null)
+        if (!tasks) { setNotice({ kind: 'error', text: t('importBadFile') }); return }
+        if (importMode === 'replace' && !window.confirm(t('importConfirm'))) return
+        setBusy(true)
+        const result = await store.importWall({ mode: importMode, tasks })
+        setBusy(false)
+        setNotice(result.ok
+          ? { kind: 'ok', text: t('imported', { added: result.data.added, skipped: result.data.skipped }) }
           : { kind: 'error', text: requestErrorText(t, result) })
       }
 

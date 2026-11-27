@@ -24,7 +24,9 @@ const HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
 const DATA_DIR = join(HOME, 'dsh-todo')
 const TASKS_FILE = join(DATA_DIR, 'tasks.json')
 const CONFIG_FILE = join(DATA_DIR, 'config.json')
+const TRASH_FILE = join(DATA_DIR, 'trash.json')
 const STORE_VERSION = 1
+const TRASH_MAX = 50
 
 /** 状态只有这四种，不增不减。 */
 const STATUSES = ['planned', 'active', 'done', 'cancelled']
@@ -326,10 +328,19 @@ function createStore(ctx) {
       }
       if (migrated) writeJsonAtomic(TASKS_FILE, { version: STORE_VERSION, tasks: store.items })
   }
+  function loadTrashFromDisk() {
+    const payload = readJson(TRASH_FILE)
+    const raw = Array.isArray(payload?.items) ? payload.items : []
+    store.trash = raw
+      .filter((entry) => isPlainObject(entry) && isPlainObject(entry.task) && typeof entry.task.id === 'string')
+      .map((entry) => ({ task: entry.task, deletedAt: typeof entry.deletedAt === 'string' ? entry.deletedAt : nowIso() }))
+  }
   const store = {
     items: [],
+    trash: [],
     load() {
       loadFromDisk()
+      loadTrashFromDisk()
       stamp = fileStamp()
     },
     /** 文件被外部改过才重载；没改就用内存数据，不反复读盘。 */
@@ -342,6 +353,9 @@ function createStore(ctx) {
     persist() {
       writeJsonAtomic(TASKS_FILE, { version: STORE_VERSION, tasks: store.items })
       stamp = fileStamp()
+    },
+    persistTrash() {
+      writeJsonAtomic(TRASH_FILE, { version: STORE_VERSION, items: store.trash })
     },
   }
   store.load()
@@ -458,6 +472,7 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
         config: snapshotConfig(),
         statuses: STATUSES.slice(),
         pending: tasks.filter((task) => PENDING.indexOf(task.status) >= 0).length,
+        trashCount: store.trash.length,
         workspaces: workspaceOptions(ctx),
         storage: { dataDir: DATA_DIR, tasksFile: TASKS_FILE, configFile: CONFIG_FILE },
       }
@@ -594,7 +609,122 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
         }
       }
       store.persist()
+      store.trash.unshift({ task: removed, deletedAt: nowIso() })
+      if (store.trash.length > TRASH_MAX) store.trash.length = TRASH_MAX
+      store.persistTrash()
       return { id, title: removed.title, detached }
+    },
+
+    /** 从回收站恢复一张便签。 */
+    restore(body = {}) {
+      if (!isPlainObject(body)) throw userError('restore payload must be an object')
+      const id = textField(body.id, 'id', 80, true)
+      const index = store.trash.findIndex((entry) => entry.task.id === id)
+      if (index < 0) throw userError(`no trashed task with id ${id}`, 404, 'NOT_FOUND')
+      const [entry] = store.trash.splice(index, 1)
+      const task = entry.task
+      task.updatedAt = nowIso()
+      store.items.push(task)
+      placeNewTask(task)
+      store.persist()
+      store.persistTrash()
+      return { task: clone(task) }
+    },
+
+    trash() {
+      return { items: clone(store.trash), max: TRASH_MAX }
+    },
+
+    emptyTrash() {
+      const count = store.trash.length
+      store.trash = []
+      store.persistTrash()
+      return { count }
+    },
+
+    /** 导出整面墙（备份）。 */
+    exportWall() {
+      return { version: STORE_VERSION, exportedAt: nowIso(), tasks: store.read() }
+    },
+
+    /** 导入备份：merge 只补不存在的 id；replace 整墙替换（调用方需先确认）。 */
+    importWall(body = {}) {
+      if (!isPlainObject(body)) throw userError('import payload must be an object')
+      const mode = body.mode === 'replace' ? 'replace' : 'merge'
+      const raw = Array.isArray(body.tasks) ? body.tasks : null
+      if (raw === null) throw userError('tasks must be an array', 400, 'IMPORT_INVALID')
+      const imported = []
+      for (const entry of raw) {
+        if (!isPlainObject(entry) || typeof entry.title !== 'string' || entry.title.trim() === '') continue
+        const task = buildTask(entry, {
+          id: typeof entry.id === 'string' && entry.id !== '' ? entry.id : undefined,
+          createdAt: typeof entry.createdAt === 'string' ? entry.createdAt : undefined,
+        })
+        imported.push(task)
+      }
+      let added = 0
+      let skipped = 0
+      if (mode === 'replace') {
+        if (imported.length > MAX_TASKS) throw userError(`the wall cannot hold more than ${MAX_TASKS} notes`, 409, 'WALL_FULL')
+        store.items = imported
+        for (const task of store.items) placeNewTask(task)
+        added = imported.length
+      } else {
+        const present = new Set(store.items.map((task) => task.id))
+        for (const task of imported) {
+          if (present.has(task.id)) { skipped += 1; continue }
+          if (store.items.length >= MAX_TASKS) throw userError(`the wall already holds ${MAX_TASKS} notes`, 409, 'WALL_FULL')
+          store.items.push(task)
+          placeNewTask(task)
+          present.add(task.id)
+          added += 1
+        }
+      }
+      store.persist()
+      return { mode, added, skipped, total: store.items.length }
+    },
+
+    /** 批量改状态/工作区/时间/纸色；一次落盘。 */
+    bulkUpdate(body = {}) {
+      if (!isPlainObject(body)) throw userError('bulk payload must be an object')
+      const ids = Array.isArray(body.ids) ? body.ids : null
+      if (ids === null || ids.length === 0) throw userError('ids must contain at least one id', 400, 'IDS_INVALID')
+      if (ids.length > 50) throw userError('bulk update at most 50 notes at a time', 400, 'IDS_INVALID')
+      const patch = isPlainObject(body.patch) ? body.patch : {}
+      const updated = []
+      const failed = []
+      const now = nowIso()
+      for (const id of ids) {
+        const task = store.items.find((item) => item.id === id)
+        if (!task) { failed.push(id); continue }
+        if (has(patch, 'status')) task.status = statusField(patch.status)
+        if (has(patch, 'color')) task.color = colorField(patch.color)
+        if (has(patch, 'workspaceId')) task.workspaceId = textField(patch.workspaceId, 'workspaceId', 200) ?? null
+        if (has(patch, 'planStartAt')) task.planStartAt = isoField(patch.planStartAt, 'planStartAt')
+        if (has(patch, 'planEndAt')) task.planEndAt = isoField(patch.planEndAt, 'planEndAt')
+        task.updatedAt = now
+        updated.push(id)
+      }
+      store.persist()
+      return { updated: updated.length, failed }
+    },
+
+    /** 按列数把整墙码齐（Agent 侧整理）。 */
+    arrangeGrid(body = {}) {
+      const columns = Number.isFinite(body.columns) ? Math.max(1, Math.min(12, Math.floor(body.columns))) : GRID_COLUMNS
+      const ordered = store.items.slice().sort((left, right) => {
+        const leftRank = STATUSES.indexOf(left.status)
+        const rightRank = STATUSES.indexOf(right.status)
+        if (leftRank !== rightRank) return leftRank - rightRank
+        return String(right.updatedAt).localeCompare(String(left.updatedAt))
+      })
+      const positions = ordered.map((task, index) => ({
+        id: task.id,
+        x: 24 + (index % columns) * GRID_STEP_X,
+        y: 24 + Math.floor(index / columns) * GRID_STEP_Y,
+      }))
+      if (positions.length === 0) return { count: 0 }
+      return operations.arrange({ positions })
     },
 
     /**
@@ -665,7 +795,7 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
 
   // 每次读写前先看 tasks.json 是否被外部改过（手改、别的进程写入），
   // 改过就先重载：面板与工具看到同一面最新的墙，回写也不盖掉外部改动。
-  for (const key of ['state', 'list', 'create', 'update', 'arrange', 'remove', 'split']) {
+  for (const key of ['state', 'list', 'create', 'update', 'arrange', 'remove', 'split', 'restore', 'emptyTrash', 'trash', 'exportWall', 'importWall', 'bulkUpdate', 'arrangeGrid']) {
     const operation = operations[key]
     operations[key] = (...args) => {
       store.refresh()
@@ -729,7 +859,7 @@ function toolOutput() {
 }
 
 /**
- * 五个 LLM 工具。它们只在设置 llmTools === true 时注册。
+ * 八个 LLM 工具。它们只在设置 llmTools === true 时注册。
  * 参数与面板操作完全同义：面板与工具调用同一套 operations。
  */
 function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle) {
@@ -955,9 +1085,9 @@ function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle)
     },
     {
       name: 'todo_delete',
-      description: 'Delete one note from the user\'s sticky-note wall permanently (there is no trash). '
-        + 'Subtasks are NOT deleted; their parent link is cleared. Prefer todo_update with status cancelled '
-        + 'when you want to keep history. Use todo_list first to get the id.',
+      description: 'Delete one note from the user\'s sticky-note wall into the trash (recoverable via todo_restore '
+        + 'or the panel trash; trash keeps the last 50). Subtasks are NOT deleted; their parent link is cleared. '
+        + 'Prefer todo_update with status cancelled when you want to keep history on the wall. Use todo_list first to get the id.',
       parameters: {
         id: {
           type: 'string',
@@ -968,19 +1098,79 @@ function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle)
       output: toolOutput(),
       async execute(args) {
         const result = operations.remove({ id: args.id })
-        const lines = [`Deleted [${result.id}] ${result.title}`]
+        const lines = [`Deleted [${result.id}] ${result.title} (moved to trash)`]
         if (result.detached > 0) lines.push(`detached ${result.detached} subtask(s)`)
         return { text: lines.join('\n') }
+      },
+    },
+    {
+      name: 'todo_restore',
+      description: 'Restore one note from the trash back onto the sticky wall. Use the panel trash or a prior '
+        + 'todo_delete result to know the id; trashed ids are not returned by todo_list.',
+      parameters: {
+        id: {
+          type: 'string',
+          required: true,
+          description: 'Trashed task id.',
+        },
+      },
+      output: toolOutput(),
+      async execute(args) {
+        const result = operations.restore({ id: args.id })
+        return { text: `Restored [${result.task.id}] ${result.task.title} — ${result.task.status}` }
+      },
+    },
+    {
+      name: 'todo_bulk_update',
+      description: 'Apply the same patch to many notes at once (up to 50): status, paper color, linked workspace, '
+        + 'planned start / expected end. Useful for bulk-completing or re-scheduling a group. Returns updated count '
+        + 'and any ids not found.',
+      parameters: {
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+          required: true,
+          description: 'Task ids from todo_list, 1-50.',
+        },
+        status: { type: 'string', enum: ['planned', 'active', 'done', 'cancelled'], description: 'New status for all listed notes.' },
+        color: { type: 'string', enum: ['cream', 'lemon', 'mint', 'sky', 'rose', 'lilac'], description: 'New paper color for all listed notes.' },
+        workspaceId: { type: 'string', description: 'Workspace id to link for all listed notes; empty string unlinks.' },
+        planStartAt: { type: 'string', description: 'Planned start ISO date-time for all listed notes; empty string clears.' },
+        planEndAt: { type: 'string', description: 'Expected end ISO date-time for all listed notes; empty string clears.' },
+      },
+      output: toolOutput(),
+      async execute(args) {
+        const patch = {}
+        for (const field of ['status', 'color', 'workspaceId', 'planStartAt', 'planEndAt']) {
+          if (args[field] !== undefined) patch[field] = args[field]
+        }
+        const result = operations.bulkUpdate({ ids: args.ids, patch })
+        const lines = [`Bulk updated ${result.updated} note(s)`]
+        if (result.failed.length > 0) lines.push(`not found: ${result.failed.join(', ')}`)
+        return { text: lines.join('\n') }
+      },
+    },
+    {
+      name: 'todo_arrange',
+      description: 'Tidy the whole wall into a grid ordered by status then recently updated. Optional columns '
+        + '(1-12, default 4). Positions are managed here only for tidying; individual drag remains a panel action.',
+      parameters: {
+        columns: { type: 'number', description: 'Grid columns, 1-12. Defaults to 4.' },
+      },
+      output: toolOutput(),
+      async execute(args) {
+        const result = operations.arrangeGrid({ columns: args.columns })
+        return { text: `Arranged ${result.count} note(s) into a grid` }
       },
     },
   ]
 }
 
 /**
- * 按需加载入口：模型先只看到这一个工具，调用后才把五个墙工具注册进
+ * 按需加载入口：模型先只看到这一个工具，调用后才把八个墙工具注册进
  * 当前 agent 的作用域（下一步起可见）。工具随 agent 销毁；关闭开关或卸载
  * 插件时由 apply 统一撤销。
- * @param tools - 五个墙工具定义。
+ * @param tools - 八个墙工具定义。
  * @param agentTools - agentId → 该 agent 作用域内工具 disposer 的映射。
  */
 function createLoaderTool(tools, agentTools) {
@@ -988,8 +1178,8 @@ function createLoaderTool(tools, agentTools) {
     name: 'todo_load_tools',
     description: 'Load the sticky-wall tools for this agent: todo_list (list pending notes), '
       + 'todo_create (add a new note), todo_update (change one note), todo_split (split a note into subtasks) '
-      + 'and todo_delete (remove a note). '
-      + 'Call this once when the user asks about their sticky wall or todos; the five tools become '
+      + 'todo_delete (remove to trash), todo_restore (restore from trash), todo_bulk_update (patch many notes) and todo_arrange (tidy the wall into a grid). '
+      + 'Call this once when the user asks about their sticky wall or todos; the eight tools become '
       + 'callable from the next step. They are not loaded before this call.',
     parameters: {},
     output: toolOutput(),
@@ -999,7 +1189,7 @@ function createLoaderTool(tools, agentTools) {
         return { text: 'No agent context is available, so the sticky-wall tools were not loaded.' }
       }
       if (agentTools.has(agent.id)) {
-        return { text: 'The sticky-wall tools are already loaded: todo_list, todo_create, todo_update, todo_split, todo_delete.' }
+        return { text: 'The sticky-wall tools are already loaded: todo_list, todo_create, todo_update, todo_split, todo_delete, todo_restore, todo_bulk_update, todo_arrange.' }
       }
       const scoped = agent.ctx && agent.ctx.tools
       if (!scoped || typeof scoped.register !== 'function') {
@@ -1016,7 +1206,7 @@ function createLoaderTool(tools, agentTools) {
       }
       agentTools.set(agent.id, disposers)
       return {
-        text: 'Sticky-wall tools loaded: todo_list, todo_create, todo_update, todo_split, todo_delete. '
+        text: 'Sticky-wall tools loaded: todo_list, todo_create, todo_update, todo_split, todo_delete, todo_restore, todo_bulk_update, todo_arrange. '
           + 'They are callable from the next step. todo_list defaults to pending notes (planned + in progress).',
       }
     },
@@ -1044,7 +1234,7 @@ export function apply(ctx, rawConfig = {}) {
   const store = createStore(ctx)
 
   // 工具注册/撤销：设置一改就生效，不需要重载插件。
-  // 默认只注册一个按需加载入口；五个墙工具在模型调用入口后进入当前 agent 作用域。
+  // 默认只注册一个按需加载入口；八个墙工具在模型调用入口后进入当前 agent 作用域。
   const toolDisposers = []
   const agentTools = new Map()
   let toolsOn = false
@@ -1128,6 +1318,12 @@ export function apply(ctx, rawConfig = {}) {
         arrange: (body) => operations.arrange(body),
         remove: (body) => operations.remove(body),
         open: (body) => operations.open(body),
+        exportWall: () => operations.exportWall(),
+        importWall: (body) => operations.importWall(body),
+        restore: (body) => operations.restore(body),
+        trash: () => operations.trash(),
+        emptyTrash: () => operations.emptyTrash(),
+        bulkUpdate: (body) => operations.bulkUpdate(body),
       })
       webCtx.effect(() => disposeRoutes, 'dsh-todo: panel routes')
       log(ctx, 'panel routes registered')

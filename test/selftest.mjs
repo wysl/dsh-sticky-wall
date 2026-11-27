@@ -109,7 +109,7 @@ const { apply } = await import('../index.js')
 apply(makeContext(), {})
 check('默认配置下不注册任何工具', registered.length === 0, `registered=${registered.length}`)
 check('默认设置落盘为 llmTools=false', JSON.parse(readFileSync(join(HOME, 'dsh-todo', 'config.json'), 'utf8')).llmTools === false)
-check('路由已注册且要求登录', routes.length === 7 && routes.every((route) => route.auth === 'required'), `routes=${routes.length}`)
+check('路由已注册且要求登录', routes.length === 13 && routes.every((route) => route.auth === 'required'), `routes=${routes.length}`)
 
 // ---------------------------------------------------------------- 普通便签
 
@@ -201,15 +201,15 @@ const fakeAgent = {
 }
 const loader = registered[0]
 const loadedText = (await loader.execute({}, { agent: fakeAgent })).text
-check('加载入口调用后出现五个工具',
-  agentRegistered.length === 5
-  && agentRegistered.map((tool) => tool.name).sort().join(',') === 'todo_create,todo_delete,todo_list,todo_split,todo_update',
+check('加载入口调用后出现八个工具',
+  agentRegistered.length === 8
+  && agentRegistered.map((tool) => tool.name).sort().join(',') === 'todo_arrange,todo_bulk_update,todo_create,todo_delete,todo_list,todo_restore,todo_split,todo_update',
   `${agentRegistered.map((tool) => tool.name).join(',')} :: ${loadedText}`)
 
 const againText = (await loader.execute({}, { agent: fakeAgent })).text
-check('重复调用不会重复注册', agentRegistered.length === 5 && /already loaded/.test(againText), againText)
+check('重复调用不会重复注册', agentRegistered.length === 8 && /already loaded/.test(againText), againText)
 const noAgentText = (await loader.execute({}, {})).text
-check('没有 agent 上下文时不加载', agentRegistered.length === 5 && /No agent context/.test(noAgentText), noAgentText)
+check('没有 agent 上下文时不加载', agentRegistered.length === 8 && /No agent context/.test(noAgentText), noAgentText)
 
 const listTool = agentRegistered.find((tool) => tool.name === 'todo_list')
 const createTool = agentRegistered.find((tool) => tool.name === 'todo_create')
@@ -267,6 +267,24 @@ const deletedText = (await deleteTool.execute({ id: autoWsTask.id }, {})).text
 check('todo_delete 删除便签', /Deleted \[/.test(deletedText), deletedText)
 const afterDeleteWs = await callRoute('/state', 'GET')
 check('删除后墙上不再有该便签', !afterDeleteWs.body.data.tasks.some((task) => task.id === autoWsTask.id), deletedText)
+
+const restoreTool = agentRegistered.find((tool) => tool.name === 'todo_restore')
+const bulkTool = agentRegistered.find((tool) => tool.name === 'todo_bulk_update')
+const arrangeTool = agentRegistered.find((tool) => tool.name === 'todo_arrange')
+const restoredText = (await restoreTool.execute({ id: autoWsTask.id }, {})).text
+check('todo_restore 从回收站恢复', /Restored \[/.test(restoredText), restoredText)
+const exportRes = await callRoute('/export', 'GET')
+check('导出含当前便签', exportRes.body?.ok === true && exportRes.body.data.tasks.some((task) => task.id === autoWsTask.id), JSON.stringify(exportRes.body?.data?.tasks?.length))
+const importMerge = await callRoute('/import', 'POST', { mode: 'merge', tasks: [{ id: 'todo_imp1', title: '导入合并' }, { id: autoWsTask.id, title: '重复应跳过' }] })
+check('导入 merge 补新跳重', importMerge.body?.data?.added === 1 && importMerge.body?.data?.skipped === 1, JSON.stringify(importMerge.body?.data))
+const bulkText = (await bulkTool.execute({ ids: ['todo_imp1', autoWsTask.id], status: 'done' }, {})).text
+check('todo_bulk_update 批量改状态', /Bulk updated 2/.test(bulkText), bulkText)
+const arrangeText = (await arrangeTool.execute({ columns: 2 }, {})).text
+check('todo_arrange 整理成网格', /Arranged \d+ note/.test(arrangeText), arrangeText)
+const trashRes = await callRoute('/trash', 'GET')
+check('回收站列表可读', trashRes.body?.ok === true && Array.isArray(trashRes.body.data.items), JSON.stringify(trashRes.body?.data))
+const emptyRes = await callRoute('/trash/empty', 'POST')
+check('清空回收站', emptyRes.body?.ok === true, JSON.stringify(emptyRes.body))
 
 const disabled = await callRoute('/config', 'POST', { llmTools: false })
 check('关闭后入口与已加载工具都撤销',

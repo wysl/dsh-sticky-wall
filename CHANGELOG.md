@@ -2,6 +2,8 @@
 
 ## 0.2.0
 
+- 查缺补漏 1–4：① 删除进回收站（trash.json，保留 50 条）+ 删除通知「撤销」+ 顶栏回收站弹层（恢复/清空）+ `todo_restore`；② 设置弹层备份与恢复（导出 JSON / 导入 merge|replace）；③ 大墙视口虚拟化渲染（rAF 滚动更新可见集合）；④ Agent 批量 `todo_bulk_update` 与 `todo_arrange`。按需加载入口现为八个工具。
+
 - Agent 侧查缺补漏：新增 `todo_delete`（永久删除、子便签只解绑）；`todo_list` 增加 `includeBody`（读全文与附件 id/路径）与 `offset` 翻页（回显 matched/offset/total）；顶栏入口按钮 tooltip 带待完成数。按需加载入口现为五个工具。
 
 - 独立为 `@wysl/dsh-sticky-wall`（仓库 `wysl/dsh-sticky-wall`），脱离原 fork 网络；fork 自 `xia-sc/dsh-todo`（MIT），署名收敛于 LICENSE 原版权行与 README 出处声明（不在 contributors 列原作者）。
