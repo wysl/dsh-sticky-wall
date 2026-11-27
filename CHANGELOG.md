@@ -2,6 +2,12 @@
 
 ## 0.2.0
 
+- 效率包：键盘流（Ctrl+Shift+T 开墙；墙内 `/` 搜索、`n` 新建、`e` 编辑、Delete 删除）；多选+批量条（wall Ctrl/⌘+点击、list 复选+全选，批量改状态/纸色/工作区/删除）；拖卡到状态 chip 直接改状态；双击墙面空白按坐标新建 + 新建模板（默认/会议/bug/想法）。
+- 组织包：wall/list 视图切换（list 按状态分组表格）；归档开关（默认隐藏已完成/已撤销，带计数）；搜索 `status:`/`workspace:` 语法 + Enter 滚动定位首匹配。
+- 提醒可配置：设置弹层提醒区（开关/提前量/临近与过期长显时长/再提醒间隔/复检间隔）持久化到 config.json，到期提醒全读配置。
+- 数据包：导出 Markdown checklist / CSV；导入自动识别 .json/.md/.csv；附件图片缩略图 + 图片/md/txt 预览弹层（主机 /file 路由，≤5MB 白名单）。
+- 修复：doExport/doImport 误置于 GeneralSettingsRow 导致 SettingsDialog 引用报错，移回 SettingsDialog。
+
 - 查缺补漏 1–4：① 删除进回收站（trash.json，保留 50 条）+ 删除通知「撤销」+ 顶栏回收站弹层（恢复/清空）+ `todo_restore`；② 设置弹层备份与恢复（导出 JSON / 导入 merge|replace）；③ 大墙视口虚拟化渲染（rAF 滚动更新可见集合）；④ Agent 批量 `todo_bulk_update` 与 `todo_arrange`。按需加载入口现为八个工具。
 - 到期提醒（复用启动悬浮框）：只检测设了 `planEndAt` 且仍待完成（planned/active）的卡；**1h 内临近**弹「N 个便签 1 小时内到期」气泡**持续 30min**，**已过期**弹「N 个便签已到期」（红边框）**持续 10min**；之后同一卡同一阈值**每 1h** 再提醒；5min 复检；与启动气泡互斥不同屏；无到期日的卡不检测。
 - 启动待办提示为**悬浮框**（popover）：锚在顶栏便签按钮下方、右缘对齐按钮，落在标签条右侧空白带内（单行紧凑，不遮对话区）；带指向上方的小箭头、阴影圆角；启动约 2s 显示「N 个待完成 + 查看」，每次页面加载一次、6s 淡出、点外/Esc 关闭、resize 重新锚定不关闭；portal 挂 body；宿主 token 随浅色/深色/跟随系统适配。
