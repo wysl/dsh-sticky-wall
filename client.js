@@ -482,7 +482,6 @@ window.__ModuleLoader__.load({
       .todo-note.quiet{filter:saturate(.55);border-color:color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 45%, #7a621f);box-shadow:none}
       .todo-note.quiet:hover,.todo-note.quiet:focus-visible{filter:saturate(.85);box-shadow:var(--dsw-elevation-panel)}
       .todo-note.arranging{transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),box-shadow .16s,opacity .2s}
-      .todo-tape{position:absolute;top:-6px;left:50%;width:62px;height:16px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg, rgba(255,255,255,.28), rgba(255,255,255,.6) 40%, rgba(255,255,255,.38));border:1px solid rgba(120,100,60,.2);border-radius:2px;pointer-events:none}
       .todo-note-top{display:flex;align-items:center;gap:6px;flex:none;margin-bottom:7px;min-height:20px}
       /* 左缘书签式竖排状态标签 */
       .todo-ribbon{position:absolute;left:-9px;top:26px;box-sizing:border-box;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:2px;padding:8px 4px;border-radius:4px;font-size:11px;line-height:1;font-weight:600;color:#fdf6d9;background:#6f6858;box-shadow:0 1px 3px rgba(0,0,0,.25);pointer-events:none;max-height:132px;overflow:hidden}
@@ -1588,7 +1587,6 @@ window.__ModuleLoader__.load({
           }
         },
       },
-        h('span', { className: 'todo-tape', 'aria-hidden': true }),
         h('span', {
           className: 'todo-ribbon',
           'data-status': task.status,
@@ -1925,7 +1923,6 @@ window.__ModuleLoader__.load({
           if (isBlank(event)) collapse()
         },
       },
-        h('span', { className: 'todo-tape', 'aria-hidden': true }),
         h('button', {
           type: 'button',
           className: 'todo-collapse',
