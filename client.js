@@ -2655,8 +2655,8 @@ window.__ModuleLoader__.load({
 
       // 任务被删/导入替换后，剪掉已不存在的选中 id。
       React.useEffect(() => {
-        setSelectedIds((list) => list.filter((id) => tasks.some((x) => x.id === id)))
-      }, [tasks])
+        setSelectedIds((list) => list.filter((id) => snapshot.tasks.some((x) => x.id === id)))
+      }, [snapshot.tasks])
 
       React.useEffect(() => () => {
         if (autoScroll.current !== null) {
