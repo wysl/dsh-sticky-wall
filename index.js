@@ -16,10 +16,10 @@ import { homedir } from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { registerRoutes } from './routes.js'
 
-export const name = '@xia-sc/dsh-todo'
+export const name = '@wysl/dsh-sticky-wall'
 export const inject = ['tools']
 
-const PLUGIN_VERSION = '0.1.4'
+const PLUGIN_VERSION = '0.2.0'
 const HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
 const DATA_DIR = join(HOME, 'dsh-todo')
 const TASKS_FILE = join(DATA_DIR, 'tasks.json')

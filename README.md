@@ -1,6 +1,8 @@
-# 便签墙 TODO（`@xia-sc/dsh-todo`）
+# 便签墙 TODO（`@wysl/dsh-sticky-wall`）
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![npm](https://img.shields.io/npm/v/@xia-sc/dsh-todo.svg)](https://www.npmjs.com/package/@xia-sc/dsh-todo)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![npm](https://img.shields.io/npm/v/@wysl/dsh-sticky-wall.svg)](https://www.npmjs.com/package/@wysl/dsh-sticky-wall)
+
+> **出处 / Attribution**：本仓库为独立维护版，fork 自 [xia-sc/dsh-todo](https://github.com/xia-sc/dsh-todo)（MIT）。依 MIT 要求保留原版权声明与许可文本（见 [LICENSE](LICENSE)，含 `Copyright (c) 2026 xia-sc`）；本仓库的修改与新增同样以 MIT 发布（`Copyright (c) 2026 wysl`）。与原仓库已无 fork 网络关系，上游更新不会自动同步。
 
 把 TODO 当成便签贴在墙上：点会话标题栏右上的便签按钮，或右栏「开始」引导列表里的「便签墙」卡片，在**右侧栏**新开一个便签墙标签（不占用主对话区）；便签可以拖到墙上任意位置，点一下原地展开编辑。状态只是便签里的一个字段，不是分区。工作区、起止时间、文档附件都是可选字段，留空就是一张普通便签。开启设置后，LLM 可以按需加载工具，读取和改写同一堵墙。
 
@@ -17,7 +19,7 @@
 DSH 已连接 npm 时，直接以包名安装：
 
 ```js
-plugin_manager({ action: 'install_bundle', target: '@xia-sc/dsh-todo' })
+plugin_manager({ action: 'install_bundle', target: '@wysl/dsh-sticky-wall' })
 ```
 
 也可以在 **Plugins → 添加插件** 中填入同样的包名。

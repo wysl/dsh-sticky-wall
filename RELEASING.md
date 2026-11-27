@@ -5,11 +5,11 @@
 
 ## 一次性准备（首次发布）
 
-1. npm 账号需要有 `@xia-sc` scope 的发布权限，并确认 `@xia-sc/dsh-todo` 尚未被占用：
+1. npm 账号需要有 `@wysl` scope 的发布权限，并确认 `@wysl/dsh-sticky-wall` 尚未被占用：
 
    ```bash
    npm whoami
-   npm view @xia-sc/dsh-todo version   # 首次应为 404
+   npm view @wysl/dsh-sticky-wall version   # 首次应为 404
    ```
 
 2. 在本机做第一次手动发布（这一步用 token，OIDC 还不能用）：
@@ -24,7 +24,7 @@
 
    | 字段 | 值 |
    | --- | --- |
-   | Organization or user | `xia-sc` |
+   | Organization or user | `wysl` |
    | Repository | `dsh-todo` |
    | Workflow filename | `publish.yml` |
    | Environment | 留空（工作流没有使用 environment） |

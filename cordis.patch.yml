@@ -3,4 +3,4 @@
 # 这一层只负责把插件插进 loader 树，不写 config，避免两处配置互相覆盖。
 - insert:
     - id: todo-wall
-      name: '@xia-sc/dsh-todo'
+      name: '@wysl/dsh-sticky-wall'

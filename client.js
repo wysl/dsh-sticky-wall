@@ -12,13 +12,13 @@
 // （--todo-paper-* / --todo-ink-*），用于在深色主题下也保持暖色便签观感。
 
 window.__ModuleLoader__.load({
-  id: '@xia-sc/dsh-todo',
+  id: '@wysl/dsh-sticky-wall',
   factory(require) {
     const React = require('react')
     const h = React.createElement
 
     const API = '/dsh-todo/api'
-    const NS = 'xia-sc.dsh-todo'
+    const NS = 'wysl.dsh-sticky-wall'
     const PANEL_ID = 'todo-wall'
     const STATUSES = ['planned', 'active', 'done', 'cancelled']
     const PAPER = {
@@ -492,7 +492,7 @@ window.__ModuleLoader__.load({
     /** 入口按钮先于墙面板挂载，CSS 必须全局注入一次，不能只靠面板组件内的 <style>。 */
     function ensureStyle() {
       if (typeof document === 'undefined') return () => {}
-      const id = 'xia-sc-dsh-todo-style'
+      const id = 'wysl-dsh-sticky-wall-style'
       let node = document.getElementById(id)
       let created = false
       if (!node) {

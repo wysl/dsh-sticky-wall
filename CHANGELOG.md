@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- 独立为 `@wysl/dsh-sticky-wall`（仓库 `wysl/dsh-sticky-wall`），脱离原 fork 网络；fork 自 `xia-sc/dsh-todo`（MIT），保留原版权与许可并在 README / LICENSE / contributors 署名。
+- 模块 id、locale NS、cordis patch 行、发布 workflow 同步改名；版本重置为 0.2.0。
+- 数据目录仍为 `%DSH_HOME%\dsh-todo\`（config.json / tasks.json），以兼容既有便签，不迁移不改名。
+
 ## 0.1.4
 
 - 关联工作区补缺陷：`todo_create` 省略 `workspaceId` 时按当前会话工作目录自动匹配注册工作区（最长前缀）并关联，结果文本回显工作区名；`todo_list` 附带工作区清单（id=标题）供模型显式指定。

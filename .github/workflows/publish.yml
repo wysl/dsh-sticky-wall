@@ -3,8 +3,8 @@
 # No npm token is used: the job exchanges GitHub's OIDC identity token for a
 # short-lived publish credential. The matching trusted publisher must be
 # configured on npm with:
-#   package            @xia-sc/dsh-todo
-#   repository         xia-sc/dsh-todo
+#   package            @wysl/dsh-sticky-wall
+#   repository         wysl/dsh-sticky-wall (forked from xia-sc/dsh-todo, MIT)
 #   workflow filename  publish.yml
 #
 # First publish is done manually by the maintainer (npm token). After the
@@ -49,7 +49,7 @@ jobs:
         run: |
           NAME=$(node -p "require('./package.json').name")
           VERSION=$(node -p "require('./package.json').version")
-          test "$NAME" = "@xia-sc/dsh-todo"
+          test "$NAME" = "@wysl/dsh-sticky-wall"
           echo "publishing $NAME@$VERSION"
 
       - name: Verify the release tag matches package.json
