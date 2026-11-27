@@ -61,6 +61,17 @@ window.__ModuleLoader__.load({
         importBadFile: '文件不是有效的备份 JSON。',
         exported: '已导出备份文件。',
         imported: '导入完成：新增 {added}，跳过 {skipped}。',
+        ctxOpen: '展开编辑',
+        ctxEditTitle: '编辑标题',
+        ctxEditBody: '编辑正文',
+        ctxStatus: '状态',
+        ctxColor: '纸色',
+        ctxWorkspace: '关联工作区',
+        ctxUnlink: '不关联',
+        ctxCopyTitle: '复制标题',
+        ctxCopyBody: '复制正文',
+        ctxDelete: '删除',
+        ctxCollapse: '收起',
         collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
@@ -180,6 +191,17 @@ window.__ModuleLoader__.load({
         importBadFile: 'File is not a valid backup JSON.',
         exported: 'Backup file exported.',
         imported: 'Import done: added {added}, skipped {skipped}.',
+        ctxOpen: 'Open editor',
+        ctxEditTitle: 'Edit title',
+        ctxEditBody: 'Edit body',
+        ctxStatus: 'Status',
+        ctxColor: 'Paper color',
+        ctxWorkspace: 'Link workspace',
+        ctxUnlink: 'Unlink',
+        ctxCopyTitle: 'Copy title',
+        ctxCopyBody: 'Copy body',
+        ctxDelete: 'Delete',
+        ctxCollapse: 'Collapse',
         collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
@@ -430,6 +452,18 @@ window.__ModuleLoader__.load({
       .todo-trash-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--dsw-alias-border-l1)}
       .todo-trash-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
       .todo-trash-when{flex:none;color:var(--dsw-alias-label-tertiary);font-size:11px}
+      .todo-ctx-overlay{position:fixed;inset:0;z-index:10000}
+      .todo-ctx{position:fixed;z-index:10001;min-width:180px;max-width:260px;padding:4px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent)}
+      .todo-ctx-item{position:relative;display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer;text-align:left}
+      .todo-ctx-item:hover,.todo-ctx-item:focus-visible{background:var(--dsw-alias-interactive-bg-hover)}
+      .todo-ctx-item .arrow{margin-left:auto;color:var(--dsw-alias-label-tertiary)}
+      .todo-ctx-item .dot{width:6px;height:6px;border-radius:50%;flex:none;background:#8b8476}
+      .todo-ctx-item .dot[data-status="active"]{background:#3d7e9c}
+      .todo-ctx-item .dot[data-status="done"]{background:#578a5d}
+      .todo-ctx-item .dot[data-status="cancelled"]{background:#a7a196}
+      .todo-ctx-item .swatch{width:12px;height:12px;border-radius:50%;flex:none;background:var(--swatch);border:1px solid rgba(90,75,40,.3)}
+      .todo-ctx-sep{height:1px;margin:4px 6px;background:var(--dsw-alias-border-l1)}
+      .todo-ctx-sub{position:absolute;left:100%;top:-4px;z-index:10002;min-width:150px;max-width:220px;max-height:240px;overflow:auto;padding:4px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent);display:flex;flex-direction:column}
       .todo-attach-name{flex:none;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
       .todo-attach-path{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--todo-ink-faint)}
       .todo-attach-warn{flex:none;color:var(--todo-danger)}
@@ -1105,7 +1139,7 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 便签
 
-    function NoteCard({ task, t, canvasWidth, draggingEnabled, suppressed, removing, query, onOpen, onMove, onDragY, onDragStart, onDragEnd }) {
+    function NoteCard({ task, t, canvasWidth, draggingEnabled, suppressed, removing, query, onOpen, onMove, onDragY, onDragStart, onDragEnd, onContextMenu }) {
       const nodeRef = React.useRef(null)
       const dragRef = React.useRef(null)
       const suppressClickRef = React.useRef(0)
@@ -1210,6 +1244,7 @@ window.__ModuleLoader__.load({
         onPointerMove: handlePointerMove,
         onPointerUp: handlePointerUp,
         onPointerCancel: handlePointerUp,
+        onContextMenu: (event) => { if (onContextMenu) onContextMenu(event) },
         onClick: (event) => {
           if (!draggingEnabled) return
           if (Date.now() - suppressClickRef.current < 300) return
@@ -1237,10 +1272,10 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 原地编辑
 
-    function NoteEditor({ task, t, canvasWidth = 900, store, closing, query, onClose, onExited, onRemove, onChanged }) {
+    function NoteEditor({ task, t, canvasWidth = 900, store, closing, query, initialTextMode, onConsumeText, onClose, onExited, onRemove, onChanged, onContextMenu }) {
       const snapshotState = useSnapshot(store)
       // null = 查看/快捷改态；'title' / 'note' = 该文本字段进入编辑。
-      const [textMode, setTextMode] = React.useState(null)
+      const [textMode, setTextMode] = React.useState(initialTextMode || null)
       const [title, setTitle] = React.useState(task.title)
       const [body, setBody] = React.useState(task.note || '')
       const [showEnd, setShowEnd] = React.useState(Boolean(task.planEndAt))
@@ -1295,6 +1330,10 @@ window.__ModuleLoader__.load({
           autosize()
         }
       }, [textMode])
+
+      React.useEffect(() => {
+        if (initialTextMode && typeof onConsumeText === 'function') onConsumeText()
+      }, [])
 
       // 展开卡和小卡一样可拖：外部位置变化时同步（拖动中不覆盖）。
       React.useEffect(() => {
@@ -1524,6 +1563,7 @@ window.__ModuleLoader__.load({
         onPointerMove: handlePointerMove,
         onPointerUp: handlePointerUp,
         onPointerCancel: handlePointerUp,
+        onContextMenu: (event) => { if (onContextMenu) onContextMenu(event) },
         onClick: (event) => {
           if (Date.now() - suppressClickRef.current < 300) return
           if (isBlank(event)) collapse()
@@ -1698,6 +1738,104 @@ window.__ModuleLoader__.load({
     }
 
     // ---------------------------------------------------------------- 设置弹层
+
+    function ContextMenu({ menu, task, t, store, workspaces, onClose, onOpen, onEditText, onCollapse, onDelete }) {
+      const [openSub, setOpenSub] = React.useState(null)
+      const menuRef = React.useRef(null)
+      React.useEffect(() => {
+        const onKey = (event) => { if (event.key === 'Escape') onClose() }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [onClose])
+      React.useEffect(() => {
+        const node = menuRef.current
+        if (!node) return
+        const rect = node.getBoundingClientRect()
+        const x = Math.min(menu.x, Math.max(8, window.innerWidth - rect.width - 8))
+        const y = Math.min(menu.y, Math.max(8, window.innerHeight - rect.height - 8))
+        node.style.left = `${x}px`
+        node.style.top = `${y}px`
+        const first = node.querySelector('button')
+        if (first) first.focus()
+      }, [])
+      if (!task) return null
+      async function patch(fields) {
+        await store.update(task.id, fields)
+        onClose()
+      }
+      async function copy(text) {
+        try { await navigator.clipboard.writeText(text || '') } catch { /* 剪贴板不可用忽略 */ }
+        onClose()
+      }
+      function item(key, label, onClick, sub) {
+        return h('button', {
+          key,
+          type: 'button',
+          className: 'todo-ctx-item',
+          role: 'menuitem',
+          onClick: (event) => { event.stopPropagation(); if (sub) { setOpenSub(openSub === key ? null : key); return } onClick() },
+          onMouseEnter: () => { if (sub) setOpenSub(key) },
+          onFocus: () => { if (sub) setOpenSub(key) },
+        }, label, sub ? h('span', { className: 'arrow', 'aria-hidden': true }, '▸') : null,
+        sub && openSub === key ? h('span', { className: 'todo-ctx-sub', role: 'menu' }, sub) : null)
+      }
+      const statusSub = STATUSES.map((value) => h('button', {
+        key: value,
+        type: 'button',
+        className: 'todo-ctx-item',
+        role: 'menuitem',
+        onClick: (event) => { event.stopPropagation(); void patch({ status: value }) },
+      }, h('i', { className: 'dot', 'data-status': value }), t('status' + value.charAt(0).toUpperCase() + value.slice(1))))
+      const colorSub = PAPER_ORDER.map((id) => h('button', {
+        key: id,
+        type: 'button',
+        className: 'todo-ctx-item',
+        role: 'menuitem',
+        onClick: (event) => { event.stopPropagation(); void patch({ color: id }) },
+      }, h('i', { className: 'swatch', style: { '--swatch': `var(--todo-paper-${id})` } }), t('color' + id.charAt(0).toUpperCase() + id.slice(1))))
+      const workspaceSub = [
+        h('button', {
+          key: 'none',
+          type: 'button',
+          className: 'todo-ctx-item',
+          role: 'menuitem',
+          onClick: (event) => { event.stopPropagation(); void patch({ workspaceId: null }) },
+        }, t('ctxUnlink')),
+        ...workspaces.map((ws) => h('button', {
+          key: ws.id,
+          type: 'button',
+          className: 'todo-ctx-item',
+          role: 'menuitem',
+          onClick: (event) => { event.stopPropagation(); void patch({ workspaceId: ws.id }) },
+        }, ws.title || ws.path || ws.id)),
+      ]
+      return h('div', {
+        className: 'todo-ctx-overlay',
+        onClick: onClose,
+        onContextMenu: (event) => { event.preventDefault(); onClose() },
+      },
+        h('div', {
+          ref: menuRef,
+          className: 'todo-ctx',
+          role: 'menu',
+          style: { left: `${menu.x}px`, top: `${menu.y}px` },
+          onClick: (event) => event.stopPropagation(),
+        },
+          menu.expanded
+            ? item('collapse', t('ctxCollapse'), onCollapse)
+            : item('open', t('ctxOpen'), onOpen),
+          item('editTitle', t('ctxEditTitle'), () => onEditText('title')),
+          item('editBody', t('ctxEditBody'), () => onEditText('note')),
+          h('div', { className: 'todo-ctx-sep', 'aria-hidden': true }),
+          item('status', t('ctxStatus'), null, statusSub),
+          item('color', t('ctxColor'), null, colorSub),
+          item('workspace', t('ctxWorkspace'), null, workspaceSub),
+          h('div', { className: 'todo-ctx-sep', 'aria-hidden': true }),
+          item('copyTitle', t('ctxCopyTitle'), () => { void copy(task.title) }),
+          item('copyBody', t('ctxCopyBody'), () => { void copy(task.note) }),
+          h('div', { className: 'todo-ctx-sep', 'aria-hidden': true }),
+          item('delete', t('ctxDelete'), () => onDelete(task.id))))
+    }
 
     function TrashDialog({ t, store, onClose }) {
       const [items, setItems] = React.useState(null)
@@ -1894,6 +2032,8 @@ window.__ModuleLoader__.load({
       const [closing, setClosing] = React.useState(false)
       const [removingIds, setRemovingIds] = React.useState([])
       const [trashOpen, setTrashOpen] = React.useState(false)
+      const [ctxMenu, setCtxMenu] = React.useState(null)
+      const [pendingTextEdit, setPendingTextEdit] = React.useState(null)
       const [viewport, setViewport] = React.useState({ top: 0, height: 800 })
       const scrollRef = React.useRef(null)
       const pointerY = React.useRef(null)
@@ -2056,6 +2196,19 @@ window.__ModuleLoader__.load({
         if (!result.ok) setNotice({ kind: 'error', text: requestErrorText(t, result) })
       }
 
+      function openCtx(event, taskId, expanded) {
+        event.preventDefault()
+        event.stopPropagation()
+        setCtxMenu({ x: event.clientX, y: event.clientY, taskId, expanded })
+      }
+      function ctxEditText(mode) {
+        const id = ctxMenu.taskId
+        setCtxMenu(null)
+        setPendingTextEdit(mode)
+        setClosing(false)
+        setEditingId(id)
+      }
+
       async function arrange() {
         if (editingId !== null) return
         const width = canvasWidth - 48
@@ -2140,6 +2293,7 @@ window.__ModuleLoader__.load({
             removing: removingIds.includes(task.id),
             query,
             onOpen: () => { setClosing(false); setEditingId(task.id) },
+            onContextMenu: (event) => openCtx(event, task.id, false),
             onMove: moveNote,
             onDragY: (y) => { pointerY.current = y },
             onDragStart: beginDragScroll,
@@ -2153,6 +2307,9 @@ window.__ModuleLoader__.load({
             store,
             closing,
             query,
+            initialTextMode: pendingTextEdit,
+            onConsumeText: () => setPendingTextEdit(null),
+            onContextMenu: (event) => openCtx(event, editing.id, true),
             onClose: collapseEditor,
             onExited: finishClose,
             onRemove: removeNote,
@@ -2202,7 +2359,19 @@ window.__ModuleLoader__.load({
         wall,
         statusbar,
         settingsOpen ? h(SettingsDialog, { t, store, onClose: () => setSettingsOpen(false) }) : null,
-        trashOpen ? h(TrashDialog, { t, store, onClose: () => setTrashOpen(false) }) : null)
+        trashOpen ? h(TrashDialog, { t, store, onClose: () => setTrashOpen(false) }) : null,
+        ctxMenu ? h(ContextMenu, {
+          menu: ctxMenu,
+          task: tasks.find((item) => item.id === ctxMenu.taskId) || null,
+          t,
+          store,
+          workspaces: snapshot.workspaces || [],
+          onClose: () => setCtxMenu(null),
+          onOpen: () => { const id = ctxMenu.taskId; setCtxMenu(null); setClosing(false); setEditingId(id) },
+          onEditText: ctxEditText,
+          onCollapse: () => { setCtxMenu(null); collapseEditor() },
+          onDelete: (id) => { setCtxMenu(null); removeNote(id) },
+        }) : null)
     }
 
     // ---------------------------------------------------------------- 入口按钮与右栏面板
