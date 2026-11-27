@@ -2722,7 +2722,6 @@ window.__ModuleLoader__.load({
         const y = task.y ?? 0
         return y + NOTE_H >= viewport.top - 240 && y <= viewport.top + viewport.height + 240
       })
-      const ghostSpot = findSpot()
 
       const counts = { all: tasks.length }
       for (const status of STATUSES) counts[status] = 0
@@ -3051,6 +3050,7 @@ window.__ModuleLoader__.load({
             onClick: () => setSettingsOpen(true),
           }, h(GearIcon))))
 
+      const ghostSpot = findSpot()
       const wall = h('div', {
         ref: scrollRef,
         className: 'todo-scroll',

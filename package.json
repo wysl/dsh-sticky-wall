@@ -18,7 +18,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node test/selftest.mjs"
+    "test": "node test/selftest.mjs",
+    "smoke": "node test/smoke.mjs"
   },
   "exports": {
     ".": "./index.js",
