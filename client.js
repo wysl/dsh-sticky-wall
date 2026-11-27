@@ -484,6 +484,12 @@ window.__ModuleLoader__.load({
       .todo-note.arranging{transition:left .38s cubic-bezier(.2,.8,.2,1),top .38s cubic-bezier(.2,.8,.2,1),box-shadow .16s,opacity .2s}
       .todo-tape{position:absolute;top:-6px;left:50%;width:62px;height:16px;transform:translateX(-50%) rotate(-2.2deg);background:linear-gradient(90deg, rgba(255,255,255,.28), rgba(255,255,255,.6) 40%, rgba(255,255,255,.38));border:1px solid rgba(120,100,60,.2);border-radius:2px;pointer-events:none}
       .todo-note-top{display:flex;align-items:center;gap:6px;flex:none;margin-bottom:7px;min-height:20px}
+      /* 左缘书签式竖排状态标签 */
+      .todo-ribbon{position:absolute;left:-9px;top:26px;box-sizing:border-box;writing-mode:vertical-rl;text-orientation:upright;letter-spacing:2px;padding:8px 4px;border-radius:4px;font-size:11px;line-height:1;font-weight:600;color:#fdf6d9;background:#6f6858;box-shadow:0 1px 3px rgba(0,0,0,.25);pointer-events:none;max-height:132px;overflow:hidden}
+      .todo-ribbon[data-status="active"]{background:#2f5d74}
+      .todo-ribbon[data-status="done"]{background:#3f6b45}
+      .todo-ribbon[data-status="cancelled"]{background:#7a746a}
+      .todo-note.pulse .todo-ribbon{animation:todo-dot-pulse .35s ease}
       .todo-tag{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border-radius:999px;background:rgba(255,255,255,.7);border:1px solid rgba(120,100,60,.16);color:var(--todo-ink-soft);font-size:11.5px;line-height:1;white-space:nowrap}
       .todo-tag .dot{width:6px;height:6px;border-radius:50%;background:#8b8476}
       .todo-tag[data-status="active"] .dot{background:#3d7e9c}
@@ -1583,10 +1589,12 @@ window.__ModuleLoader__.load({
         },
       },
         h('span', { className: 'todo-tape', 'aria-hidden': true }),
-        h('div', { className: 'todo-note-top' },
-          h('span', { className: 'todo-tag', 'data-status': task.status },
-            h('i', { className: 'dot' }),
-            t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1)))),
+        h('span', {
+          className: 'todo-ribbon',
+          'data-status': task.status,
+          'aria-hidden': true,
+          title: t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1)),
+        }, t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1))),
         h('h2', { className: 'todo-note-title', title: task.title || undefined }, highlightNodes(task.title || t('titlePlaceholder'), query, `nt-${task.id}`)),
         h('div', { ref: bodyRef, className: 'todo-note-body', title: task.note || undefined }, renderMarkdown(task.note, query, `nb-${task.id}`)),
         when ? h('div', { className: 'todo-note-when' + (timeInvalid(task) ? ' warn' : '') + (isOverdue(task) ? ' overdue' : '') },
