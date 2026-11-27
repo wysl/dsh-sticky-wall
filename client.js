@@ -80,6 +80,12 @@ window.__ModuleLoader__.load({
         dueOverdue: '{n} 个便签已到期',
         dueBoth: '{o} 个已到期 · {s} 个 1 小时内到期',
         draftCancelled: '未做任何修改，已取消该空白便签。',
+        ghostNote: '贴一张',
+        blankNew: '新建便签',
+        blankPaste: '粘贴为便签',
+        blankArrange: '整理墙面',
+        pasteEmpty: '剪贴板为空。',
+        pasteFail: '无法读取剪贴板。',
         viewWall: '墙',
         viewList: '列表',
         viewToggle: '视图切换',
@@ -255,6 +261,12 @@ window.__ModuleLoader__.load({
         dueOverdue: '{n} note(s) overdue',
         dueBoth: '{o} overdue · {s} due within 1h',
         draftCancelled: 'No changes made; the blank note was cancelled.',
+        ghostNote: 'Add a note',
+        blankNew: 'New note',
+        blankPaste: 'Paste as note',
+        blankArrange: 'Tidy wall',
+        pasteEmpty: 'Clipboard is empty.',
+        pasteFail: 'Cannot read clipboard.',
         viewWall: 'Wall',
         viewList: 'List',
         viewToggle: 'Switch view',
@@ -585,6 +597,8 @@ window.__ModuleLoader__.load({
       /* ---------------- 设置弹层 ---------------- */
       .todo-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:max(24px,var(--dsh-frame-overlay-top,24px)) 24px}
       .todo-editor-modal{position:relative;z-index:1;display:flex;max-height:86vh;overflow:auto}
+      .todo-ghost{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;width:240px;height:120px;border:1.5px dashed var(--dsw-alias-border-l3);border-radius:12px;background:color-mix(in srgb, var(--dsw-alias-bg-layer-1) 55%, transparent);color:var(--dsw-alias-label-tertiary);font:inherit;font-size:12px;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
+      .todo-ghost:hover{background:color-mix(in srgb, var(--todo-paper-cream) 30%, transparent);border-color:var(--todo-ink-faint);color:var(--todo-ink-soft)}
       .todo-mask{position:absolute;inset:var(--dsh-frame-chrome-top,0px) 0 0;background:var(--dsw-alias-bg-mask-1);backdrop-filter:var(--dsw-mask-blur);animation:todo-fade var(--ds-transition-duration) var(--ds-ease-in-out)}
       .todo-dialog{position:relative;z-index:1;box-sizing:border-box;display:flex;flex-direction:column;width:min(440px,100%);max-height:100%;padding:0 0 24px;overflow:hidden;border:0;border-radius:var(--dsw-radius-panel);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent);animation:todo-fade var(--ds-transition-duration) var(--ds-ease-in-out)}
       .todo-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:22px 14px 12px 24px}
@@ -2614,6 +2628,7 @@ window.__ModuleLoader__.load({
       const [removingIds, setRemovingIds] = React.useState([])
       const [trashOpen, setTrashOpen] = React.useState(false)
       const [ctxMenu, setCtxMenu] = React.useState(null)
+      const [blankMenu, setBlankMenu] = React.useState(null)
       const [pendingTextEdit, setPendingTextEdit] = React.useState(null)
       const [viewport, setViewport] = React.useState({ top: 0, height: 800 })
       const [view, setView] = React.useState('wall')
@@ -2707,6 +2722,7 @@ window.__ModuleLoader__.load({
         const y = task.y ?? 0
         return y + NOTE_H >= viewport.top - 240 && y <= viewport.top + viewport.height + 240
       })
+      const ghostSpot = findSpot()
 
       const counts = { all: tasks.length }
       for (const status of STATUSES) counts[status] = 0
@@ -2811,7 +2827,7 @@ window.__ModuleLoader__.load({
         scrollRef.current.scrollTo({ top: Math.max(0, (first.y ?? 0) - 40), behavior: 'smooth' })
       }
       function canvasDoubleClick(event) {
-        if (event.target.closest('.todo-note') || event.target.closest('.todo-editor')) return
+        if (event.target.closest('.todo-note') || event.target.closest('.todo-editor') || event.target.closest('.todo-ghost')) return
         const canvas = canvasRef.current
         if (!canvas) return
         const rect = canvas.getBoundingClientRect()
@@ -2819,6 +2835,50 @@ window.__ModuleLoader__.load({
         const y = Math.max(8, event.clientY - rect.top)
         void createNote({ x, y })
       }
+
+      /** 墙面空白右键：新建 / 粘贴为便签 / 整理。 */
+      function blankContextMenu(event) {
+        if (event.target.closest('.todo-note') || event.target.closest('.todo-editor') || event.target.closest('.todo-ghost')) return
+        event.preventDefault()
+        const canvas = canvasRef.current
+        let coord = null
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect()
+          coord = {
+            x: Math.max(8, Math.min(event.clientX - rect.left, Math.max(8, canvasWidth - NOTE_W - 8))),
+            y: Math.max(8, event.clientY - rect.top),
+          }
+        }
+        setBlankMenu({ x: event.clientX, y: event.clientY, coord })
+      }
+
+      /** 剪贴板文本一键变便签：首行标题、其余正文。 */
+      async function pasteCreate(coord) {
+        let text = ''
+        try { text = await navigator.clipboard.readText() } catch { setNotice({ kind: 'error', text: t('pasteFail') }); return }
+        text = (text || '').trim()
+        if (!text) { setNotice({ kind: 'error', text: t('pasteEmpty') }); return }
+        const lines = text.split(/\r?\n/)
+        const title = lines[0].slice(0, 200)
+        const note = lines.slice(1).join('\n').trim()
+        setBusy(true)
+        const spot = coord || findSpot()
+        const result = await store.create({ title, note, x: spot.x, y: spot.y, color: 'cream' })
+        setBusy(false)
+        if (!result.ok) { setNotice({ kind: 'error', text: requestErrorText(t, result) }); return }
+        draftRef.current = result.data.task.id
+        draftTouchedRef.current = true // 粘贴已有内容，不算空草稿
+        setClosing(false)
+        setEditingId(result.data.task.id)
+        setNotice({ kind: 'ok', text: t('created') })
+      }
+
+      React.useEffect(() => {
+        if (!blankMenu) return undefined
+        const onKey = (event) => { if (event.key === 'Escape') setBlankMenu(null) }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+      }, [blankMenu])
 
       // 键盘流：/ 搜索、n 新建、e 编辑、Delete 删除；守卫墙可见且焦点不在输入控件。
       const keyStateRef = React.useRef(null)
@@ -2972,6 +3032,13 @@ window.__ModuleLoader__.load({
             type: 'button',
             className: 'todo-btn ghost icon',
             style: { marginLeft: 'auto' },
+            'aria-label': t('newNote'),
+            title: t('newNote'),
+            onClick: () => { void createNote() },
+          }, h(PlusIcon)),
+          h('button', {
+            type: 'button',
+            className: 'todo-btn ghost icon',
             'aria-label': t('trash'),
             title: t('trash') + (snapshot.trashCount ? ` (${snapshot.trashCount})` : ''),
             onClick: () => setTrashOpen(true),
@@ -2994,7 +3061,7 @@ window.__ModuleLoader__.load({
           collapseEditor()
         },
       },
-        h('div', { ref: canvasRef, className: 'todo-canvas', style: { minHeight: `${canvasHeight}px` }, onDoubleClick: canvasDoubleClick },
+        h('div', { ref: canvasRef, className: 'todo-canvas', style: { minHeight: `${canvasHeight}px` }, onDoubleClick: canvasDoubleClick, onContextMenu: blankContextMenu },
           ...renderTasks.slice().sort((left, right) => String(left.updatedAt || '').localeCompare(String(right.updatedAt || ''))).map((task) => h(NoteCard, {
             key: task.id,
             task: { ...task, hidden: !visibleIds.has(task.id) },
@@ -3014,6 +3081,13 @@ window.__ModuleLoader__.load({
             onDragStart: beginDragScroll,
             onDragEnd: endDragScroll,
           })),
+          editingId === null ? h('button', {
+            type: 'button',
+            className: 'todo-ghost',
+            style: { left: `${ghostSpot.x}px`, top: `${ghostSpot.y}px` },
+            title: t('ghostNote'),
+            onClick: () => { void createNote(ghostSpot) },
+          }, h(PlusIcon), h('span', null, t('ghostNote'))) : null,
           editing ? h(NoteEditor, {
             key: `editor-${editing.id}`,
             task: editing,
@@ -3132,7 +3206,22 @@ window.__ModuleLoader__.load({
           onEditText: ctxEditText,
           onCollapse: () => { setCtxMenu(null); collapseEditor() },
           onDelete: (id) => { setCtxMenu(null); removeNote(id) },
-        }) : null)
+        }) : null,
+        blankMenu ? h('div', {
+          className: 'todo-ctx-overlay',
+          onClick: () => setBlankMenu(null),
+          onContextMenu: (event) => { event.preventDefault(); setBlankMenu(null) },
+        },
+          h('div', {
+            className: 'todo-ctx',
+            role: 'menu',
+            style: { left: `${Math.min(blankMenu.x, Math.max(8, window.innerWidth - 200))}px`, top: `${Math.min(blankMenu.y, Math.max(8, window.innerHeight - 150))}px` },
+            onClick: (event) => event.stopPropagation(),
+          },
+            h('button', { type: 'button', className: 'todo-ctx-item', role: 'menuitem', onClick: () => { const c = blankMenu.coord; setBlankMenu(null); void createNote(c) } }, t('blankNew')),
+            h('button', { type: 'button', className: 'todo-ctx-item', role: 'menuitem', onClick: () => { const c = blankMenu.coord; setBlankMenu(null); void pasteCreate(c) } }, t('blankPaste')),
+            h('div', { className: 'todo-ctx-sep', 'aria-hidden': true }),
+            h('button', { type: 'button', className: 'todo-ctx-item', role: 'menuitem', onClick: () => { setBlankMenu(null); void arrange() } }, t('blankArrange')))) : null)
     }
 
     // ---------------------------------------------------------------- 入口按钮与右栏面板
