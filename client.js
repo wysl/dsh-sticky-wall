@@ -2490,7 +2490,15 @@ window.__ModuleLoader__.load({
           if (buttonRef.current && buttonRef.current.contains(event.target)) return
           setBubble(null)
         }
-        const onResize = () => setBubble(null)
+        const onResize = () => {
+          // 窗口变化只重新锚定，不关闭长显提醒。
+          const pos = anchor()
+          setBubble((cur) => {
+            if (!cur) return cur
+            if (!pos) return null
+            return { ...cur, left: pos.left, top: pos.top }
+          })
+        }
         window.addEventListener('keydown', onKey)
         document.addEventListener('pointerdown', onDown, true)
         window.addEventListener('resize', onResize)
