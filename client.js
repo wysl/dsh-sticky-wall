@@ -83,17 +83,6 @@ window.__ModuleLoader__.load({
         viewWall: '墙',
         viewList: '列表',
         viewToggle: '视图切换',
-        template: '模板',
-        tplPlain: '默认',
-        tplMeeting: '会议',
-        tplBug: 'Bug',
-        tplIdea: '想法',
-        tplMeetingTitle: '会议：',
-        tplMeetingBody: '时间：\n参与：\n议题：\n结论：\n行动项：',
-        tplBugTitle: 'Bug：',
-        tplBugBody: '现象：\n复现：\n期望：\n实际：\n环境：',
-        tplIdeaTitle: '想法：',
-        tplIdeaBody: '背景：\n想法：\n下一步：',
         archive: '归档',
         archiveShow: '显示归档',
         archiveHide: '隐藏归档',
@@ -269,17 +258,6 @@ window.__ModuleLoader__.load({
         viewWall: 'Wall',
         viewList: 'List',
         viewToggle: 'Switch view',
-        template: 'Template',
-        tplPlain: 'Plain',
-        tplMeeting: 'Meeting',
-        tplBug: 'Bug',
-        tplIdea: 'Idea',
-        tplMeetingTitle: 'Meeting: ',
-        tplMeetingBody: 'When:\nWho:\nAgenda:\nDecisions:\nActions:',
-        tplBugTitle: 'Bug: ',
-        tplBugBody: 'Symptom:\nRepro:\nExpected:\nActual:\nEnv:',
-        tplIdeaTitle: 'Idea: ',
-        tplIdeaBody: 'Context:\nIdea:\nNext:',
         archive: 'Archive',
         archiveShow: 'Show archived',
         archiveHide: 'Hide archived',
@@ -896,14 +874,6 @@ window.__ModuleLoader__.load({
       }
       out.text = rest.join(' ')
       return out
-    }
-
-    const TEMPLATE_IDS = ['plain', 'meeting', 'bug', 'idea']
-    function templateSkeleton(id, t) {
-      if (id === 'meeting') return { title: t('tplMeetingTitle'), note: t('tplMeetingBody') }
-      if (id === 'bug') return { title: t('tplBugTitle'), note: t('tplBugBody') }
-      if (id === 'idea') return { title: t('tplIdeaTitle'), note: t('tplIdeaBody') }
-      return { title: t('titlePlaceholder'), note: '' }
     }
 
     function isImagePath(path) { return /\.(png|jpe?g|gif|webp|svg)$/i.test(String(path || '')) }
@@ -2649,7 +2619,6 @@ window.__ModuleLoader__.load({
       const [view, setView] = React.useState('wall')
       const [selectedIds, setSelectedIds] = React.useState([])
       const [showArchived, setShowArchived] = React.useState(false)
-      const [template, setTemplate] = React.useState('plain')
       const searchRef = React.useRef(null)
       const scrollRef = React.useRef(null)
       const pointerY = React.useRef(null)
@@ -2802,12 +2771,11 @@ window.__ModuleLoader__.load({
         return { x: 24, y: 24 + tasks.length * 20 }
       }
 
-      async function createNote(coord, templateId) {
+      async function createNote(coord) {
         if (busy || editingId !== null) return
         setBusy(true)
         const spot = coord || findSpot()
-        const skeleton = templateSkeleton(templateId || template, t)
-        const result = await store.create({ title: skeleton.title, note: skeleton.note, x: spot.x, y: spot.y, color: 'cream' })
+        const result = await store.create({ title: t('titlePlaceholder'), note: '', x: spot.x, y: spot.y, color: 'cream' })
         setBusy(false)
         if (!result.ok) {
           setNotice({ kind: 'error', text: requestErrorText(t, result) })
@@ -2992,13 +2960,6 @@ window.__ModuleLoader__.load({
           h('div', { className: 'todo-viewtoggle', role: 'group', 'aria-label': t('viewToggle') },
             h('button', { type: 'button', 'aria-pressed': view === 'wall' ? 'true' : 'false', onClick: () => setView('wall') }, t('viewWall')),
             h('button', { type: 'button', 'aria-pressed': view === 'list' ? 'true' : 'false', onClick: () => setView('list') }, t('viewList'))),
-          h('select', {
-            'aria-label': t('template'),
-            title: t('template'),
-            value: template,
-            style: { height: '30px' },
-            onChange: (event) => setTemplate(event.target.value),
-          }, ...TEMPLATE_IDS.map((id) => h('option', { key: id, value: id }, t('tpl' + id.charAt(0).toUpperCase() + id.slice(1))))),
           h('button', {
             type: 'button',
             className: 'todo-btn ghost outline',
