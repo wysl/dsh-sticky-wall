@@ -72,6 +72,8 @@ window.__ModuleLoader__.load({
         ctxCopyBody: '复制正文',
         ctxDelete: '删除',
         ctxCollapse: '收起',
+        bubblePending: '{n} 个待完成',
+        bubbleView: '查看',
         collapse: '收起',
         quickHint: '双击标题/正文编辑 · 点空白收起',
         title: '便签墙',
@@ -202,6 +204,8 @@ window.__ModuleLoader__.load({
         ctxCopyBody: 'Copy body',
         ctxDelete: 'Delete',
         ctxCollapse: 'Collapse',
+        bubblePending: '{n} pending',
+        bubbleView: 'View',
         collapse: 'Collapse',
         quickHint: 'Double-click title/body to edit · click blank to collapse',
         title: 'Sticky wall',
@@ -530,6 +534,9 @@ window.__ModuleLoader__.load({
       .todo-headbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
       .todo-headbtn:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary);outline-offset:1px}
       .todo-headbtn .todo-pending-dot{position:absolute;top:3px;right:3px}
+      /* 启动待办气泡：壳层 UI，用宿主 token，随浅色/深色/跟随系统自动适配 */
+      .todo-bubble{position:fixed;z-index:10002;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);box-shadow:var(--dsw-elevation-prominent);font-size:12px;line-height:18px;white-space:nowrap;animation:todo-fade .18s ease}
+      .todo-bubble-arrow{position:absolute;top:-5px;left:50%;width:8px;height:8px;transform:translateX(-50%) rotate(45deg);background:var(--dsw-alias-bg-layer-2);border-left:1px solid var(--dsw-alias-border-l2);border-top:1px solid var(--dsw-alias-border-l2)}
       /* 右栏标签体：撑满右栏面板高度 */
       .todo-pane{height:100%;min-height:0;display:flex;flex-direction:column}
 
@@ -544,7 +551,7 @@ window.__ModuleLoader__.load({
       @keyframes todo-dot-pulse{0%{scale:1}45%{scale:1.7}100%{scale:1}}
       @media (max-width:900px){.todo-search{width:150px}.todo-brand .sub{display:none}}
       @media (max-width:720px){.todo-topbar{padding:10px 14px}.todo-statusbar{padding:8px 14px}}
-      @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-note.removing,.todo-note.pulse .todo-tag .dot,.todo-editor .title,.todo-editor textarea,.todo-textview,.todo-switch,.todo-switch .knob,.todo-search{transition:none;animation:none}.todo-note:hover{translate:none}}
+      @media (prefers-reduced-motion:reduce){.todo-mask,.todo-dialog{animation:none}.todo-note,.todo-note.arranging,.todo-note.removing,.todo-note.pulse .todo-tag .dot,.todo-editor .title,.todo-editor textarea,.todo-textview,.todo-bubble,.todo-switch,.todo-switch .knob,.todo-search{transition:none;animation:none}.todo-note:hover{translate:none}}
       /* 窄右栏响应式：chips 独立成行横滑，搜索与按钮收紧 */
       @container (max-width:560px){
         .todo-topbar{padding:10px 12px;gap:6px 8px}
@@ -2381,13 +2388,83 @@ window.__ModuleLoader__.load({
       const t = props.t || translator
       const pending = useSnapshot(WALL_STORE).pending || 0
       const label = pending > 0 ? `${t('nav')} · ${t('pendingCount', { n: pending })}` : t('nav')
-      return h('button', {
-        type: 'button',
-        className: 'todo-headbtn',
-        title: label,
-        'aria-label': label,
-        onClick: () => { if (typeof props.open === 'function') props.open(props.sid) },
-      }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false }))
+      const buttonRef = React.useRef(null)
+      const bubbleRef = React.useRef(null)
+      const [bubble, setBubble] = React.useState(null)
+
+      // 启动 2s 后在按钮下方弹一次待办概览气泡（每浏览器会话一次）。
+      React.useEffect(() => {
+        let timer = null
+        let hide = null
+        let tries = 0
+        try {
+          if (sessionStorage.getItem('dsh-sticky-wall-boot-bubble')) return undefined
+        } catch { return undefined }
+        const attempt = () => {
+          const snap = WALL_STORE.getSnapshot()
+          if (snap.phase !== 'ready' || !(snap.pending > 0)) {
+            tries += 1
+            if (tries < 4) timer = setTimeout(attempt, 1200)
+            return
+          }
+          const node = buttonRef.current
+          if (!node) return
+          const rect = node.getBoundingClientRect()
+          if (rect.width === 0) return
+          try { sessionStorage.setItem('dsh-sticky-wall-boot-bubble', '1') } catch { /* 忽略 */ }
+          const center = rect.left + rect.width / 2
+          setBubble({
+            left: Math.min(Math.max(center, 110), Math.max(110, window.innerWidth - 110)),
+            top: rect.bottom + 8,
+            n: snap.pending,
+          })
+          hide = setTimeout(() => setBubble(null), 6000)
+        }
+        timer = setTimeout(attempt, 2000)
+        return () => { clearTimeout(timer); if (hide) clearTimeout(hide) }
+      }, [])
+
+      React.useEffect(() => {
+        if (!bubble) return undefined
+        const onKey = (event) => { if (event.key === 'Escape') setBubble(null) }
+        const onDown = (event) => {
+          if (bubbleRef.current && bubbleRef.current.contains(event.target)) return
+          if (buttonRef.current && buttonRef.current.contains(event.target)) return
+          setBubble(null)
+        }
+        const onResize = () => setBubble(null)
+        window.addEventListener('keydown', onKey)
+        document.addEventListener('pointerdown', onDown, true)
+        window.addEventListener('resize', onResize)
+        return () => {
+          window.removeEventListener('keydown', onKey)
+          document.removeEventListener('pointerdown', onDown, true)
+          window.removeEventListener('resize', onResize)
+        }
+      }, [bubble])
+
+      return h(React.Fragment, null,
+        h('button', {
+          ref: buttonRef,
+          type: 'button',
+          className: 'todo-headbtn',
+          title: label,
+          'aria-label': label,
+          onClick: () => { if (typeof props.open === 'function') props.open(props.sid) },
+        }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false })),
+        bubble ? h('div', {
+          ref: bubbleRef,
+          className: 'todo-bubble',
+          role: 'status',
+          style: { left: `${bubble.left}px`, top: `${bubble.top}px` },
+        },
+          h('span', { className: 'todo-bubble-arrow', 'aria-hidden': true }),
+          h('span', null, t('bubblePending', { n: bubble.n })),
+          h('button', {
+            type: 'button',
+            className: 'todo-mini',
+            onClick: () => { setBubble(null); if (typeof props.open === 'function') props.open(props.sid) },
+          }, t('bubbleView'))) : null)
     }
 
     /** 右栏标签体：便签墙撑满右栏面板。 */
