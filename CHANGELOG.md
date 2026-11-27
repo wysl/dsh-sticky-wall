@@ -2,6 +2,8 @@
 
 ## 0.2.0
 
+- Agent 侧查缺补漏：新增 `todo_delete`（永久删除、子便签只解绑）；`todo_list` 增加 `includeBody`（读全文与附件 id/路径）与 `offset` 翻页（回显 matched/offset/total）；顶栏入口按钮 tooltip 带待完成数。按需加载入口现为五个工具。
+
 - 独立为 `@wysl/dsh-sticky-wall`（仓库 `wysl/dsh-sticky-wall`），脱离原 fork 网络；fork 自 `xia-sc/dsh-todo`（MIT），署名收敛于 LICENSE 原版权行与 README 出处声明（不在 contributors 列原作者）。
 - 模块 id、locale NS、cordis patch 行、发布 workflow 同步改名；版本重置为 0.2.0。
 - 数据目录仍为 `%DSH_HOME%\dsh-todo\`（config.json / tasks.json），以兼容既有便签，不迁移不改名。

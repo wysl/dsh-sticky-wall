@@ -1975,11 +1975,13 @@ window.__ModuleLoader__.load({
     /** 会话标题栏右上图标排里的入口：点开右栏便签墙。 */
     function HeaderToggle(props) {
       const t = props.t || translator
+      const pending = useSnapshot(WALL_STORE).pending || 0
+      const label = pending > 0 ? `${t('nav')} · ${t('pendingCount', { n: pending })}` : t('nav')
       return h('button', {
         type: 'button',
         className: 'todo-headbtn',
-        title: t('nav'),
-        'aria-label': t('nav'),
+        title: label,
+        'aria-label': label,
         onClick: () => { if (typeof props.open === 'function') props.open(props.sid) },
       }, h(NoteIcon, { size: 16 }), h(PendingBadge, { wide: false }))
     }

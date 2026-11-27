@@ -92,21 +92,22 @@ plugin_manager({ action: 'install_bundle', target: 'E:\\path\\to\\dsh-todo' })
 
 工具**默认不注册**。开关在「设置 → 通用」或便签墙底部的 LLM 状态按钮里，值保存在 `%DSH_HOME%\dsh-todo\config.json` 的 `llmTools`（默认 `false`）。
 
-开启后并不是一口气塞进四个工具，而是**按需加载**：
+开启后并不是一口气塞进五个工具，而是**按需加载**：
 
 1. 模型先只看到 `todo_load_tools` 一个入口（描述里说明它能加载什么）。
-2. 模型调用一次，四个墙工具才注册进**当前 agent 的作用域**，从下一步起可见可调用。子 agent 要各自加载。
+2. 模型调用一次，五个墙工具才注册进**当前 agent 的作用域**，从下一步起可见可调用。子 agent 要各自加载。
 3. 关掉开关：入口和已经加载的工具一起撤销；重新开启后需要模型再次调用入口。
 
 | 工具 | 作用 | 主要参数 |
 | --- | --- | --- |
-| `todo_load_tools` | 按需加载入口：把下面四个工具加载到当前 agent | 无 |
-| `todo_list` | 查看工具区（便签墙）内待完成的任务：默认只返回「规划中 + 进行中」，只读 | `status`（`pending`/`planned`/`active`/`done`/`cancelled`/`all`）、`workspace`（工作区 id 或标题片段）、`query`、`limit`（1–50，默认 20） |
+| `todo_load_tools` | 按需加载入口：把下面五个工具加载到当前 agent | 无 |
+| `todo_list` | 查看工具区（便签墙）内待完成的任务：默认只返回「规划中 + 进行中」，只读；`includeBody` 读全文与附件 id，`offset` 翻页 | `status`（`pending`/`planned`/`active`/`done`/`cancelled`/`all`）、`workspace`（工作区 id 或标题片段）、`query`、`limit`（1–50，默认 20）、`offset`、`includeBody` |
 | `todo_create` | 新建一张便签：只有标题必填，其余可选；**省略工作区时自动关联当前会话工作区**；默认「规划中」，自动落网格位。不要直接改存储文件 | `title`（必填）、`note`、`status`、`workspaceId`（省略=自动关联）、`planStartAt`、`planEndAt`、`attachments` |
 | `todo_update` | 修改一张便签：标题、正文、四状态、工作区、起止时间、附件增删；`clear` 可清空可选字段 | `id`（必填）、`title`、`note`、`status`、`workspaceId`、`planStartAt`、`planEndAt`、`clear`、`addAttachments`、`removeAttachments` |
 | `todo_split` | 拆解：把一张便签拆成多张子便签，保留父子关系，子便签默认「规划中」并继承父便签的工作区 | `id`（必填）、`subtasks`（1–12 个标题）、`note`、`status`（`planned`/`active`）、`markParentActive`、`inheritWorkspace` |
+| `todo_delete` | 永久删除一张便签（无回收站）；子便签不连带删除、只解除父子关系；想留历史改用 `todo_update` 置 `cancelled` | `id`（必填） |
 
-- **开启后**：只注册 `todo_load_tools`；调用后四个工具进入当前 agent 作用域，面板与工具调用同一套 operations。
+- **开启后**：只注册 `todo_load_tools`；调用后五个工具进入当前 agent 作用域，面板与工具调用同一套 operations。
 - **关闭时**：注册被撤销（包括已加载到各 agent 的工具），工具不出现在工具表里，模型既看不到也无法调用；已创建的便签不受影响。切换立即生效，不需要重启。
 - 便签的摆放位置与纸色由面板维护；LLM 工具不修改这两个字段。
 

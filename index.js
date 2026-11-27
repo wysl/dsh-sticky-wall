@@ -379,7 +379,7 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
     return found ? found.title : '(removed workspace)'
   }
 
-  function describe(task) {
+  function describe(task, verbose = false) {
     const parts = [task.status]
     if (task.workspaceId) parts.push(`workspace ${resolveWorkspace(task.workspaceId)}`)
     const start = task.planStartAt ? `start ${shortWhen(task.planStartAt)}` : ''
@@ -394,7 +394,14 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
     if (task.note) parts.push('has body text')
     const line = `- [${task.id}] ${task.title} — ${parts.join(' · ')}`
     const warning = timeWarning(task)
-    return warning ? `${line}\n  warning: ${warning}` : line
+    const lines = [warning ? `${line}\n  warning: ${warning}` : line]
+    if (verbose) {
+      if (task.note) lines.push(`  body: ${task.note.replace(/\n/g, '\n  ')}`)
+      for (const att of task.attachments) {
+        lines.push(`  attachment [${att.id}] ${att.name} :: ${att.path}${att.missing ? ' (missing)' : ''}`)
+      }
+    }
+    return lines.join('\n')
   }
 
   function snapshotConfig() {
@@ -427,7 +434,8 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
       return found ? found.title.toLowerCase().includes(workspace) : false
     }
     const limit = Number.isFinite(options.limit) ? Math.max(1, Math.min(50, Math.floor(options.limit))) : 20
-    return store.items
+    const offset = Number.isFinite(options.offset) ? Math.max(0, Math.floor(options.offset)) : 0
+    const filtered = store.items
       .filter((task) => wanted.indexOf(task.status) >= 0)
       .filter(matchWorkspace)
       .filter((task) => !query || task.title.toLowerCase().includes(query) || task.note.toLowerCase().includes(query))
@@ -438,7 +446,7 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
         if (leftRank !== rightRank) return leftRank - rightRank
         return String(right.updatedAt).localeCompare(String(left.updatedAt))
       })
-      .slice(0, limit)
+    return { tasks: filtered.slice(offset, offset + limit), matched: filtered.length }
   }
 
   const operations = {
@@ -472,8 +480,9 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
     },
 
     list(options = {}) {
-      const tasks = filterTasks(options)
-      return { tasks, total: store.items.length }
+      const { tasks, matched } = filterTasks(options)
+      const offset = Number.isFinite(options.offset) ? Math.max(0, Math.floor(options.offset)) : 0
+      return { tasks, matched, total: store.items.length, offset }
     },
 
     create(body = {}) {
@@ -665,15 +674,15 @@ function createOperations(ctx, store, configRef, syncTools, wdRef) {
   }
 
   /** 工具结果文本：只读列表，方便模型直接引用 id。 */
-  function renderList(result) {
+  function renderList(result, verbose = false) {
     const workspaces = workspaceOptions(ctx)
     const wsLine = workspaces.length > 0
       ? `\nWorkspaces: ${workspaces.map((item) => `${item.id}=${item.title}`).join(', ')}`
       : ''
     if (result.tasks.length === 0) {
-      return `No tasks matched. The sticky wall has no pending notes for this filter.${wsLine}`
+      return `No tasks matched (offset ${result.offset || 0}, ${result.matched} matched, wall ${result.total}).${wsLine}`
     }
-    return `${result.tasks.length} task(s) on the sticky wall:\n${result.tasks.map(describe).join('\n')}${wsLine}`
+    return `${result.tasks.length} shown of ${result.matched} matched (wall ${result.total}, offset ${result.offset || 0}):\n${result.tasks.map((task) => describe(task, verbose)).join('\n')}${wsLine}`
   }
 
   /** 省略 workspaceId 时，按当前会话 cwd 匹配注册工作区（最长前缀），自动关联。 */
@@ -720,7 +729,7 @@ function toolOutput() {
 }
 
 /**
- * 四个 LLM 工具。它们只在设置 llmTools === true 时注册。
+ * 五个 LLM 工具。它们只在设置 llmTools === true 时注册。
  * 参数与面板操作完全同义：面板与工具调用同一套 operations。
  */
 function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle) {
@@ -729,7 +738,9 @@ function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle)
       name: 'todo_list',
       description: 'List notes on the user\'s sticky-note wall (todo list). Pending means planned or in progress; '
         + 'completed and cancelled notes stay hidden unless status asks for them. Read-only. '
-        + 'Call it before todo_update or todo_split to get the current task ids. '
+        + 'Call it before todo_update, todo_split or todo_delete to get the current task ids. '
+        + 'Set includeBody to also read full body text and attachment ids (needed for removeAttachments). '
+        + 'Use offset to page through more than limit notes. '
         + 'A note may have no workspace, no start or end time and no attachment: those fields are optional, '
         + 'and such a note is a plain sticky note.',
       parameters: {
@@ -750,6 +761,14 @@ function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle)
           type: 'number',
           description: 'Maximum notes to return, 1-50. Defaults to 20.',
         },
+        offset: {
+          type: 'number',
+          description: 'Skip this many matched notes before returning limit notes, for paging. Defaults to 0.',
+        },
+        includeBody: {
+          type: 'boolean',
+          description: 'Include each note\'s full body text and attachment ids/paths. Defaults to false (summary only).',
+        },
       },
       output: toolOutput(),
       async execute(args) {
@@ -758,8 +777,9 @@ function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle)
           workspace: args.workspace,
           query: args.query,
           limit: args.limit,
+          offset: args.offset,
         })
-        return { text: renderList(result) }
+        return { text: renderList(result, args.includeBody === true) }
       },
     },
     {
@@ -933,22 +953,43 @@ function createTools(operations, renderList, defaultWorkspaceId, workspaceTitle)
         return { text: lines.join('\n') }
       },
     },
+    {
+      name: 'todo_delete',
+      description: 'Delete one note from the user\'s sticky-note wall permanently (there is no trash). '
+        + 'Subtasks are NOT deleted; their parent link is cleared. Prefer todo_update with status cancelled '
+        + 'when you want to keep history. Use todo_list first to get the id.',
+      parameters: {
+        id: {
+          type: 'string',
+          required: true,
+          description: 'Task id from todo_list, such as todo_1a2b3c4d5e.',
+        },
+      },
+      output: toolOutput(),
+      async execute(args) {
+        const result = operations.remove({ id: args.id })
+        const lines = [`Deleted [${result.id}] ${result.title}`]
+        if (result.detached > 0) lines.push(`detached ${result.detached} subtask(s)`)
+        return { text: lines.join('\n') }
+      },
+    },
   ]
 }
 
 /**
- * 按需加载入口：模型先只看到这一个工具，调用后才把四个墙工具注册进
+ * 按需加载入口：模型先只看到这一个工具，调用后才把五个墙工具注册进
  * 当前 agent 的作用域（下一步起可见）。工具随 agent 销毁；关闭开关或卸载
  * 插件时由 apply 统一撤销。
- * @param tools - 四个墙工具定义。
+ * @param tools - 五个墙工具定义。
  * @param agentTools - agentId → 该 agent 作用域内工具 disposer 的映射。
  */
 function createLoaderTool(tools, agentTools) {
   return {
     name: 'todo_load_tools',
     description: 'Load the sticky-wall tools for this agent: todo_list (list pending notes), '
-      + 'todo_create (add a new note), todo_update (change one note) and todo_split (split a note into subtasks). '
-      + 'Call this once when the user asks about their sticky wall or todos; the four tools become '
+      + 'todo_create (add a new note), todo_update (change one note), todo_split (split a note into subtasks) '
+      + 'and todo_delete (remove a note). '
+      + 'Call this once when the user asks about their sticky wall or todos; the five tools become '
       + 'callable from the next step. They are not loaded before this call.',
     parameters: {},
     output: toolOutput(),
@@ -958,7 +999,7 @@ function createLoaderTool(tools, agentTools) {
         return { text: 'No agent context is available, so the sticky-wall tools were not loaded.' }
       }
       if (agentTools.has(agent.id)) {
-        return { text: 'The sticky-wall tools are already loaded: todo_list, todo_create, todo_update, todo_split.' }
+        return { text: 'The sticky-wall tools are already loaded: todo_list, todo_create, todo_update, todo_split, todo_delete.' }
       }
       const scoped = agent.ctx && agent.ctx.tools
       if (!scoped || typeof scoped.register !== 'function') {
@@ -975,7 +1016,7 @@ function createLoaderTool(tools, agentTools) {
       }
       agentTools.set(agent.id, disposers)
       return {
-        text: 'Sticky-wall tools loaded: todo_list, todo_create, todo_update, todo_split. '
+        text: 'Sticky-wall tools loaded: todo_list, todo_create, todo_update, todo_split, todo_delete. '
           + 'They are callable from the next step. todo_list defaults to pending notes (planned + in progress).',
       }
     },
@@ -1003,7 +1044,7 @@ export function apply(ctx, rawConfig = {}) {
   const store = createStore(ctx)
 
   // 工具注册/撤销：设置一改就生效，不需要重载插件。
-  // 默认只注册一个按需加载入口；四个墙工具在模型调用入口后进入当前 agent 作用域。
+  // 默认只注册一个按需加载入口；五个墙工具在模型调用入口后进入当前 agent 作用域。
   const toolDisposers = []
   const agentTools = new Map()
   let toolsOn = false

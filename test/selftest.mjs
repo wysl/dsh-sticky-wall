@@ -201,20 +201,21 @@ const fakeAgent = {
 }
 const loader = registered[0]
 const loadedText = (await loader.execute({}, { agent: fakeAgent })).text
-check('加载入口调用后出现四个工具',
-  agentRegistered.length === 4
-  && agentRegistered.map((tool) => tool.name).sort().join(',') === 'todo_create,todo_list,todo_split,todo_update',
+check('加载入口调用后出现五个工具',
+  agentRegistered.length === 5
+  && agentRegistered.map((tool) => tool.name).sort().join(',') === 'todo_create,todo_delete,todo_list,todo_split,todo_update',
   `${agentRegistered.map((tool) => tool.name).join(',')} :: ${loadedText}`)
 
 const againText = (await loader.execute({}, { agent: fakeAgent })).text
-check('重复调用不会重复注册', agentRegistered.length === 4 && /already loaded/.test(againText), againText)
+check('重复调用不会重复注册', agentRegistered.length === 5 && /already loaded/.test(againText), againText)
 const noAgentText = (await loader.execute({}, {})).text
-check('没有 agent 上下文时不加载', agentRegistered.length === 4 && /No agent context/.test(noAgentText), noAgentText)
+check('没有 agent 上下文时不加载', agentRegistered.length === 5 && /No agent context/.test(noAgentText), noAgentText)
 
 const listTool = agentRegistered.find((tool) => tool.name === 'todo_list')
 const createTool = agentRegistered.find((tool) => tool.name === 'todo_create')
 const updateTool = agentRegistered.find((tool) => tool.name === 'todo_update')
 const splitTool = agentRegistered.find((tool) => tool.name === 'todo_split')
+const deleteTool = agentRegistered.find((tool) => tool.name === 'todo_delete')
 
 // 只留一张待完成便签，验证默认只列 pending。
 await callRoute('/tasks/update', 'POST', { id: rich.id, patch: { status: 'done' } })
@@ -257,6 +258,15 @@ check('todo_create 省略 workspaceId 自动关联当前会话工作区', /works
 const autoWsState = await callRoute('/state', 'GET')
 const autoWsTask = autoWsState.body.data.tasks.find((task) => task.title === '自动关联工作区')
 check('自动关联落盘为 ws-research', autoWsTask && autoWsTask.workspaceId === 'ws-research', JSON.stringify(autoWsTask && autoWsTask.workspaceId))
+
+const verboseText = (await listTool.execute({ status: 'all', includeBody: true }, {})).text
+check('todo_list includeBody 输出正文与附件明细', /body:/.test(verboseText) && verboseText.includes('带附件和时间'), verboseText.slice(0, 200))
+const pagedText = (await listTool.execute({ status: 'all', limit: 1, offset: 1 }, {})).text
+check('todo_list offset 翻页回显 matched/offset', /1 shown of \d+ matched/.test(pagedText) && /offset 1/.test(pagedText), pagedText.slice(0, 120))
+const deletedText = (await deleteTool.execute({ id: autoWsTask.id }, {})).text
+check('todo_delete 删除便签', /Deleted \[/.test(deletedText), deletedText)
+const afterDeleteWs = await callRoute('/state', 'GET')
+check('删除后墙上不再有该便签', !afterDeleteWs.body.data.tasks.some((task) => task.id === autoWsTask.id), deletedText)
 
 const disabled = await callRoute('/config', 'POST', { llmTools: false })
 check('关闭后入口与已加载工具都撤销',
