@@ -416,7 +416,7 @@ window.__ModuleLoader__.load({
         gap:8px 12px;padding:12px 20px;border-bottom:1px solid var(--dsw-alias-border-l1);
         background:var(--dsw-alias-bg-base);
       }
-      .todo-brand{display:flex;align-items:center;gap:8px;margin-right:auto;min-width:0}
+      .todo-brand{display:flex;align-items:center;gap:8px;margin-right:0;min-width:0}
       .todo-brand h1{margin:0;font-size:18px;line-height:26px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap}
       .todo-brand .sub{margin:0;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .todo-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
@@ -2971,6 +2971,7 @@ window.__ModuleLoader__.load({
           h('button', {
             type: 'button',
             className: 'todo-btn ghost icon',
+            style: { marginLeft: 'auto' },
             'aria-label': t('trash'),
             title: t('trash') + (snapshot.trashCount ? ` (${snapshot.trashCount})` : ''),
             onClick: () => setTrashOpen(true),
