@@ -510,6 +510,8 @@ window.__ModuleLoader__.load({
       .todo-note-body.can-scroll{mask-image:linear-gradient(180deg,#000 calc(100% - 16px),transparent)}
       .todo-note-when{flex:none;margin-top:5px;padding-top:4px;border-top:1px dashed rgba(120,100,60,.18);color:var(--todo-ink-faint);font-size:11.5px;line-height:16px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .todo-note-when.warn{color:var(--todo-danger)}
+      .todo-note-when.overdue{color:#8c2b26;font-weight:600}
+      .todo-list-when.overdue{color:#8c2b26;font-weight:600}
 
       /* ---------------- 原地编辑 ---------------- */
       .todo-editor{position:absolute;z-index:9997;box-sizing:border-box;display:flex;flex-direction:column;gap:0;width:min(340px, calc(100% - 16px));padding:13px 14px 11px;border-radius:12px;background:var(--todo-paper, var(--todo-paper-cream));border:1px solid color-mix(in srgb, var(--todo-paper, var(--todo-paper-cream)) 62%, #7a621f);box-shadow:var(--dsw-elevation-prominent);color:var(--todo-ink);cursor:pointer;user-select:none;touch-action:none}
@@ -868,6 +870,14 @@ window.__ModuleLoader__.load({
       const start = new Date(task.planStartAt).getTime()
       const end = new Date(task.planEndAt).getTime()
       return !Number.isNaN(start) && !Number.isNaN(end) && end < start
+    }
+
+    /** 已到期：设了结束时间、仍待完成、且结束时间已过。 */
+    function isOverdue(task) {
+      if (!task.planEndAt) return false
+      if (task.status !== 'planned' && task.status !== 'active') return false
+      const end = new Date(task.planEndAt).getTime()
+      return !Number.isNaN(end) && end < Date.now()
     }
 
     // ---------------------------------------------------------------- 查询语法 / 模板 / 导入导出
@@ -1594,7 +1604,7 @@ window.__ModuleLoader__.load({
             t('status' + task.status.charAt(0).toUpperCase() + task.status.slice(1)))),
         h('h2', { className: 'todo-note-title', title: task.title || undefined }, highlightNodes(task.title || t('titlePlaceholder'), query, `nt-${task.id}`)),
         h('div', { ref: bodyRef, className: 'todo-note-body', title: task.note || undefined }, renderMarkdown(task.note, query, `nb-${task.id}`)),
-        when ? h('div', { className: 'todo-note-when' + (timeInvalid(task) ? ' warn' : '') },
+        when ? h('div', { className: 'todo-note-when' + (timeInvalid(task) ? ' warn' : '') + (isOverdue(task) ? ' overdue' : '') },
           (timeInvalid(task) ? t('timeInvalidShort') + '：' : '') + when) : null)
     }
 
@@ -2602,7 +2612,7 @@ window.__ModuleLoader__.load({
                 h('option', { value: '' }, t('unlinked')),
                 ...workspaces.map((w) => h('option', { key: w.id, value: w.id }, w.title || w.path || w.id)),
                 task.workspaceId && !workspaces.some((w) => w.id === task.workspaceId) ? h('option', { value: task.workspaceId }, t('removedWorkspace')) : null)),
-              h('td', { className: 'todo-list-when' }, task.planEndAt ? formatWhen(task.planEndAt) : '—'),
+              h('td', { className: 'todo-list-when' + (isOverdue(task) ? ' overdue' : '') }, task.planEndAt ? formatWhen(task.planEndAt) : '—'),
               h('td', null, h('button', { type: 'button', className: 'todo-mini danger', onClick: () => onRemove(task.id) }, t('delete'))),
             ]
             return h('tr', { key: task.id, className: selectedIds.includes(task.id) ? 'selected' : '' }, ...cells)
