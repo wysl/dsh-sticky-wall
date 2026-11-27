@@ -79,6 +79,7 @@ window.__ModuleLoader__.load({
         dueSoon: '{n} 个便签 1 小时内到期',
         dueOverdue: '{n} 个便签已到期',
         dueBoth: '{o} 个已到期 · {s} 个 1 小时内到期',
+        draftCancelled: '未做任何修改，已取消该空白便签。',
         viewWall: '墙',
         viewList: '列表',
         viewToggle: '视图切换',
@@ -264,6 +265,7 @@ window.__ModuleLoader__.load({
         dueSoon: '{n} note(s) due within 1h',
         dueOverdue: '{n} note(s) overdue',
         dueBoth: '{o} overdue · {s} due within 1h',
+        draftCancelled: 'No changes made; the blank note was cancelled.',
         viewWall: 'Wall',
         viewList: 'List',
         viewToggle: 'Switch view',
@@ -1598,7 +1600,7 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 原地编辑
 
-    function NoteEditor({ task, t, canvasWidth = 900, store, closing, query, initialTextMode, onConsumeText, onClose, onExited, onRemove, onChanged, onContextMenu, modal = false }) {
+    function NoteEditor({ task, t, canvasWidth = 900, store, closing, query, initialTextMode, onConsumeText, onClose, onExited, onRemove, onChanged, onContextMenu, modal = false, onTouched }) {
       const snapshotState = useSnapshot(store)
       // null = 查看/快捷改态；'title' / 'note' = 该文本字段进入编辑。
       const [textMode, setTextMode] = React.useState(initialTextMode || null)
@@ -1627,8 +1629,16 @@ window.__ModuleLoader__.load({
       React.useEffect(() => () => {
         const d = draftRef.current
         if (!d || !d.mode) return
-        if (d.mode === 'title') void store.update(task.id, { title: d.title.trim() || t('titlePlaceholder') })
-        else void store.update(task.id, { note: d.body })
+        if (d.mode === 'title') {
+          const next = d.title.trim() || t('titlePlaceholder')
+          if (next !== task.title) {
+            if (typeof onTouched === 'function') onTouched()
+            void store.update(task.id, { title: next })
+          }
+        } else if (d.body !== (task.note || '')) {
+          if (typeof onTouched === 'function') onTouched()
+          void store.update(task.id, { note: d.body })
+        }
       }, [])
 
       React.useEffect(() => {
@@ -1739,7 +1749,7 @@ window.__ModuleLoader__.load({
         suppressClickRef.current = Date.now()
         const x = clampX(drag.origX + (event.clientX - drag.startX))
         const y = Math.max(8, drag.origY + (event.clientY - drag.startY))
-        void patch({ x, y })
+        void store.update(task.id, { x, y })
       }
 
       function reducedMotion() {
@@ -1808,17 +1818,22 @@ window.__ModuleLoader__.load({
       async function patch(fields) {
         const result = await store.update(task.id, fields)
         if (!result.ok) setError(requestErrorText(t, result))
+        else if (typeof onTouched === 'function') onTouched()
         return result.ok
       }
 
-      /** 提交当前文本草稿并回到查看态。 */
+      /** 提交当前文本草稿并回到查看态；与现值相同则不算修改。 */
       function commitText() {
         const d = draftRef.current
         if (!d || !d.mode) return
         const mode = d.mode
         setTextMode(null)
-        if (mode === 'title') void patch({ title: d.title.trim() || t('titlePlaceholder') })
-        else void patch({ note: d.body })
+        if (mode === 'title') {
+          const next = d.title.trim() || t('titlePlaceholder')
+          if (next !== task.title) void patch({ title: next })
+        } else if (d.body !== (task.note || '')) {
+          void patch({ note: d.body })
+        }
       }
 
       function collapse() {
@@ -2630,6 +2645,20 @@ window.__ModuleLoader__.load({
       const pointerY = React.useRef(null)
       const autoScroll = React.useRef(null)
       const draftRef = React.useRef(null)
+      const draftTouchedRef = React.useRef(false)
+      const prevEditingRef = React.useRef(null)
+
+      // 草稿便签（双击/新建产生）若关闭时没有任何编辑/选项操作，自动取消创建。
+      React.useEffect(() => {
+        const prev = prevEditingRef.current
+        prevEditingRef.current = editingId
+        if (prev && draftRef.current === prev && !draftTouchedRef.current) {
+          draftRef.current = null
+          void store.remove(prev).then((result) => {
+            if (result.ok) setNotice({ kind: 'ok', text: t('draftCancelled') })
+          })
+        }
+      }, [editingId])
 
       // 大墙性能：只渲染视口附近（上下各留一屏余量）的便签。
       React.useEffect(() => {
@@ -2775,6 +2804,7 @@ window.__ModuleLoader__.load({
           return
         }
         draftRef.current = result.data.task.id
+        draftTouchedRef.current = false
         setClosing(false)
         setEditingId(result.data.task.id)
         setNotice({ kind: 'ok', text: t('created') })
@@ -3018,6 +3048,7 @@ window.__ModuleLoader__.load({
             onExited: finishClose,
             onRemove: removeNote,
             onChanged: (message) => setNotice({ kind: 'ok', text: message }),
+            onTouched: () => { draftTouchedRef.current = true },
           }) : null,
           (snapshot.phase === 'ready' && byFilter.length === 0) || (snapshot.phase === 'ready' && tasks.length === 0)
             ? h('div', { className: 'todo-wallhint' },
@@ -3104,6 +3135,7 @@ window.__ModuleLoader__.load({
               onExited: finishClose,
               onRemove: removeNote,
               onChanged: (message) => setNotice({ kind: 'ok', text: message }),
+            onTouched: () => { draftTouchedRef.current = true },
             }))) : null,
         statusbar,
         settingsOpen ? h(SettingsDialog, { t, store, onClose: () => setSettingsOpen(false) }) : null,
