@@ -602,6 +602,7 @@ window.__ModuleLoader__.load({
 
       /* ---------------- 设置弹层 ---------------- */
       .todo-overlay{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:max(24px,var(--dsh-frame-overlay-top,24px)) 24px}
+      .todo-editor-modal{position:relative;z-index:1;display:flex;max-height:86vh;overflow:auto}
       .todo-mask{position:absolute;inset:var(--dsh-frame-chrome-top,0px) 0 0;background:var(--dsw-alias-bg-mask-1);backdrop-filter:var(--dsw-mask-blur);animation:todo-fade var(--ds-transition-duration) var(--ds-ease-in-out)}
       .todo-dialog{position:relative;z-index:1;box-sizing:border-box;display:flex;flex-direction:column;width:min(440px,100%);max-height:100%;padding:0 0 24px;overflow:hidden;border:0;border-radius:var(--dsw-radius-panel);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent);animation:todo-fade var(--ds-transition-duration) var(--ds-ease-in-out)}
       .todo-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:22px 14px 12px 24px}
@@ -1597,7 +1598,7 @@ window.__ModuleLoader__.load({
 
     // ---------------------------------------------------------------- 原地编辑
 
-    function NoteEditor({ task, t, canvasWidth = 900, store, closing, query, initialTextMode, onConsumeText, onClose, onExited, onRemove, onChanged, onContextMenu }) {
+    function NoteEditor({ task, t, canvasWidth = 900, store, closing, query, initialTextMode, onConsumeText, onClose, onExited, onRemove, onChanged, onContextMenu, modal = false }) {
       const snapshotState = useSnapshot(store)
       // null = 查看/快捷改态；'title' / 'note' = 该文本字段进入编辑。
       const [textMode, setTextMode] = React.useState(initialTextMode || null)
@@ -1699,7 +1700,7 @@ window.__ModuleLoader__.load({
         return Boolean(event.target.closest('button, input, textarea, select, summary, label, a, details'))
       }
       function handlePointerDown(event) {
-        if (event.button !== 0 || isControl(event)) return
+        if (modal || event.button !== 0 || isControl(event)) return
         const node = cardRef.current
         if (!node) return
         dragRef.current = {
@@ -1756,7 +1757,7 @@ window.__ModuleLoader__.load({
       // 入场：从小卡矩形“长大”到展开卡（FLIP），观感是同一张纸。
       React.useEffect(() => {
         const node = cardRef.current
-        if (!node || reducedMotion()) return undefined
+        if (modal || !node || reducedMotion()) return undefined
         const from = noteRect()
         const to = node.getBoundingClientRect()
         if (!from || !to.width || !to.height) return undefined
@@ -1780,6 +1781,7 @@ window.__ModuleLoader__.load({
       // 收回：缩回小卡矩形后通知父级卸载。
       React.useEffect(() => {
         if (!closing) return undefined
+        if (modal) { onExited(); return undefined }
         const node = cardRef.current
         if (!node || reducedMotion()) { onExited(); return undefined }
         const from = node.getBoundingClientRect()
@@ -1892,7 +1894,9 @@ window.__ModuleLoader__.load({
         className: 'todo-editor' + (dragging ? ' dragging' : '') + (closing ? ' closing' : ''),
         role: 'dialog',
         'aria-label': t('edit'),
-        style: { left: `${position.x}px`, top: `${position.y}px`, maxHeight: maxH ? `${maxH}px` : undefined, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
+        style: modal
+          ? { position: 'relative', left: 'auto', top: 'auto', width: 'min(440px, calc(100vw - 48px))', maxHeight: 'min(82vh, 680px)', overflow: 'auto', '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` }
+          : { left: `${position.x}px`, top: `${position.y}px`, maxHeight: maxH ? `${maxH}px` : undefined, '--todo-paper': `var(--todo-paper-${PAPER[task.color] ? task.color : 'cream'})` },
         onPointerDown: (event) => { event.stopPropagation(); handlePointerDown(event) },
         onPointerMove: handlePointerMove,
         onPointerUp: handlePointerUp,
@@ -2788,11 +2792,9 @@ window.__ModuleLoader__.load({
         else setNotice({ kind: 'error', text: requestErrorText(t, result) })
       }
       function openEditFromList(id) {
-        setView('wall')
+        // 列表内就地编辑（模态卡），不跳回墙视图。
         setClosing(false)
         setEditingId(id)
-        const task = tasks.find((x) => x.id === id)
-        if (task && scrollRef.current) scrollRef.current.scrollTo({ top: Math.max(0, (task.y ?? 0) - 40) })
       }
       function locateFirst() {
         const first = byFilter[0]
@@ -2835,7 +2837,7 @@ window.__ModuleLoader__.load({
             event.preventDefault()
             const first = st.renderTasks.find((x) => st.visibleIds.has(x.id)) || st.byFilter[0]
             const id = st.editingId || (first && first.id)
-            if (id) { setView('wall'); setClosing(false); setEditingId(id) }
+            if (id) { setClosing(false); setEditingId(id) }
           } else if (event.key === 'Delete') {
             const id = st.editingId || st.selectedIds[0]
             if (id) { event.preventDefault(); act.removeNote(id) }
@@ -3079,6 +3081,30 @@ window.__ModuleLoader__.load({
           onRemove: removeNote,
           workspaces: snapshot.workspaces || [],
         }) : wall,
+        view === 'list' && editing ? h('div', {
+          className: 'todo-overlay',
+          role: 'presentation',
+          onClick: () => collapseEditor(),
+        },
+          h('div', { className: 'todo-mask', 'aria-hidden': true }),
+          h('div', { className: 'todo-editor-modal', onClick: (event) => event.stopPropagation() },
+            h(NoteEditor, {
+              key: `modal-editor-${editing.id}`,
+              task: editing,
+              t,
+              canvasWidth,
+              store,
+              closing,
+              modal: true,
+              query: freeText,
+              initialTextMode: pendingTextEdit,
+              onConsumeText: () => setPendingTextEdit(null),
+              onContextMenu: (event) => openCtx(event, editing.id, true),
+              onClose: collapseEditor,
+              onExited: finishClose,
+              onRemove: removeNote,
+              onChanged: (message) => setNotice({ kind: 'ok', text: message }),
+            }))) : null,
         statusbar,
         settingsOpen ? h(SettingsDialog, { t, store, onClose: () => setSettingsOpen(false) }) : null,
         trashOpen ? h(TrashDialog, { t, store, onClose: () => setTrashOpen(false) }) : null,

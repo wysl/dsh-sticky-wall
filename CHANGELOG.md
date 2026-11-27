@@ -3,7 +3,7 @@
 ## 0.2.0
 
 - 效率包：键盘流（Ctrl+Shift+T 开墙；墙内 `/` 搜索、`n` 新建、`e` 编辑、Delete 删除）；多选+批量条（wall Ctrl/⌘+点击、list 复选+全选，批量改状态/纸色/工作区/删除）；拖卡到状态 chip 直接改状态；双击墙面空白按坐标新建 + 新建模板（默认/会议/bug/想法）。
-- 组织包：wall/list 视图切换（list 按状态分组表格）；归档开关（默认隐藏已完成/已撤销，带计数）；搜索 `status:`/`workspace:` 语法 + Enter 滚动定位首匹配。
+- 组织包：wall/list 视图切换（list 按状态分组表格）；**列表内点标题就地模态编辑，不再跳回墙视图**（复选仅选中）；归档开关（默认隐藏已完成/已撤销，带计数）；搜索 `status:`/`workspace:` 语法 + Enter 滚动定位首匹配。
 - 提醒可配置：设置弹层提醒区（开关/提前量/临近与过期长显时长/再提醒间隔/复检间隔）持久化到 config.json，到期提醒全读配置。
 - 数据包：导出 Markdown checklist / CSV；导入自动识别 .json/.md/.csv；附件图片缩略图 + 图片/md/txt 预览弹层（主机 /file 路由，≤5MB 白名单）。
 - 修复：doExport/doImport 误置于 GeneralSettingsRow 导致 SettingsDialog 引用报错，移回 SettingsDialog。
