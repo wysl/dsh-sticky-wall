@@ -38,8 +38,8 @@ const NOTE_COLORS = ['cream', 'lemon', 'mint', 'sky', 'rose', 'lilac']
 const DEFAULT_NOTE_COLOR = 'cream'
 /** 没有摆放位置的旧便签按这个网格补齐。 */
 const GRID_COLUMNS = 4
-const GRID_STEP_X = 224
-const GRID_STEP_Y = 324
+const GRID_STEP_X = 234
+const GRID_STEP_Y = 304
 
 const REMIND_DEFAULT = Object.freeze({ enabled: true, leadMinutes: 60, soonMin: 30, overdueMin: 10, reRemindHours: 1, checkMin: 5 })
 const DEFAULT_CONFIG = Object.freeze({ llmTools: false, remind: REMIND_DEFAULT })

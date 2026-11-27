@@ -374,7 +374,7 @@ const migratedTasks = JSON.parse(readFileSync(join(HOME, 'dsh-todo', 'tasks.json
 check('旧数据自动补位置与纸色',
   migratedTasks.every((task) => typeof task.x === 'number' && typeof task.y === 'number')
   && migratedTasks.every((task) => task.color === 'cream')
-  && migratedTasks[0].x === 24 && migratedTasks[1].x === 248,
+  && migratedTasks[0].x === 24 && migratedTasks[1].x === 258,
   JSON.stringify(migratedTasks.map((task) => [task.title, task.x, task.y, task.color])))
 
 // ---------------------------------------------------------------- 坏文件留档
